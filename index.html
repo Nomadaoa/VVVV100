@@ -92,10 +92,14 @@
     display: flex; flex-direction: column; align-items: center;
     padding: 12px; background: #fff; border-radius: 12px; margin: 10px 0;
   }
-  .qr-box canvas, .qr-box img { width: 220px; height: 220px; image-rendering: pixelated; }
+  .qr-box canvas { width: 260px; height: 260px; image-rendering: pixelated; background: #fff; }
   .qr-tip { color: #64748b; font-size: 11px; margin-top: 6px; text-align: center; }
-  .switch-mode { text-align: center; margin-top: 8px; }
-  .switch-mode a { color: var(--accent); font-size: 12px; text-decoration: underline; cursor: pointer; }
+  .qr-pages { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+  .qr-page-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1;
+  }
+  .qr-page-dot.active { background: #6366f1; }
+  .qr-len { color: #64748b; font-size: 10px; text-align: center; margin-top: 4px; }
 
   /* 扫码模态 */
   .modal {
@@ -142,7 +146,9 @@
       <button id="btnCreate" onclick="createOffer()">🚀 生成连接码二维码</button>
       <div id="offerQr" class="qr-box hidden">
         <canvas id="offerQrCanvas"></canvas>
-        <div class="qr-tip">📱 让对方在「加入房间」扫这个码</div>
+        <div class="qr-pages" id="offerQrPages"></div>
+        <div class="qr-tip" id="offerQrTip">📱 让对方在「加入房间」逐个扫这些码</div>
+        <div class="qr-len" id="offerQrLen"></div>
       </div>
       <textarea id="offerOut" rows="2" readonly placeholder="" style="margin-top:8px"></textarea>
       <div class="row" style="margin-top:8px">
@@ -170,7 +176,9 @@
       <button onclick="createAnswer()">🔗 生成应答码二维码</button>
       <div id="answerQr" class="qr-box hidden">
         <canvas id="answerQrCanvas"></canvas>
-        <div class="qr-tip">📱 让对方在「创建房间」扫这个码</div>
+        <div class="qr-pages" id="answerQrPages"></div>
+        <div class="qr-tip" id="answerQrTip">📱 让对方在「创建房间」逐个扫这些码</div>
+        <div class="qr-len" id="answerQrLen"></div>
       </div>
       <textarea id="answerOut" rows="2" readonly placeholder="" style="margin-top:8px"></textarea>
       <div class="row" style="margin-top:8px">
@@ -358,7 +366,7 @@ async function createOffer() {
   await waitIce(pc);
   const code = encodeSDP(pc.localDescription);
   $('offerOut').value = code;
-  drawQR('offerQrCanvas', code);
+  renderQRPages('offerQrCanvas', 'offerQrPages', 'offerQrTip', 'offerQrLen', code);
   $('offerQr').classList.remove('hidden');
   setStatus('connecting', '等待对方扫码应答…');
 }
@@ -386,11 +394,11 @@ async function createAnswer() {
     await pc.setLocalDescription(answer);
     await waitIce(pc);
     const code = encodeSDP(pc.localDescription);
-    $('answerOut').value = code;
-    drawQR('answerQrCanvas', code);
-    $('answerQr').classList.remove('hidden');
-    setStatus('connecting', '已生成应答，等待对方扫码确认…');
-  } catch (e) { toast('连接码无效'); }
+  $('answerOut').value = code;
+  renderQRPages('answerQrCanvas', 'answerQrPages', 'answerQrTip', 'answerQrLen', code);
+  $('answerQr').classList.remove('hidden');
+  setStatus('connecting', '已生成应答，等待对方扫码确认…');
+} catch (e) { toast('连接码无效'); }
 }
 
 function waitIce(pc) {
@@ -553,29 +561,90 @@ drop.addEventListener('drop', e => {
 // 初始状态
 setStatus('', '未连接');
 
-// ---------- 二维码生成 ----------
-// 使用 qrcode-generator 库（CDN），异步加载重试
-function drawQR(canvasId, text) {
-  const c = $(canvasId);
-  if (!c || !text) return;
-  if (typeof qrcode === 'undefined') {
-    setTimeout(() => drawQR(canvasId, text), 500);
-    return;
-  }
-  const qr = qrcode(0, 'L');    // 容错级别 L（容量最大）
+// ---------- 二维码生成（带分页） ----------
+// 每页最大字符数：实测 120 字符以内的二维码能可靠识别
+const QR_PAGE_MAX = 120;
+
+// 单次绘制二维码到 canvas
+function drawQR(canvas, text) {
+  if (typeof qrcode === 'undefined') return false;
+  const qr = qrcode(0, 'L');
   qr.addData(text);
   qr.make();
   const size = qr.getModuleCount();
-  const ctx = c.getContext('2d');
-  const cell = 6;               // 每模块像素（更大更易扫）
-  c.width = c.height = size * cell;
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  const ctx = canvas.getContext('2d');
+  const cell = 8;
+  canvas.width = canvas.height = size * cell;
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#000';
   for (let r = 0; r < size; r++) {
     for (let cc = 0; cc < size; cc++) {
       if (qr.isDark(r, cc)) ctx.fillRect(cc * cell, r * cell, cell, cell);
     }
   }
+  return true;
+}
+
+// 分页渲染：把长字符串拆成 N 个短串，轮播展示
+function renderQRPages(canvasId, pagesId, tipId, lenId, fullText) {
+  const canvas = $(canvasId);
+  if (!canvas) return;
+
+  // 把字符串切成多页
+  const pages = [];
+  for (let i = 0; i < fullText.length; i += QR_PAGE_MAX) {
+    pages.push(fullText.slice(i, i + QR_PAGE_MAX));
+  }
+
+  // 给每页加序号标记：用 \x01 + 页号 + \x02 包起来，解码时去掉
+  const wrappedPages = pages.map((p, i) =>
+    `\x01${i + 1}/${pages.length}\x02${p}`
+  );
+
+  // 长度提示
+  $(lenId).textContent = `原始码 ${fullText.length} 字符，拆为 ${pages.length} 个二维码`;
+
+  // 渲染分页点
+  const dotsBox = $(pagesId);
+  dotsBox.innerHTML = '';
+  wrappedPages.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'qr-page-dot' + (i === 0 ? ' active' : '');
+    dotsBox.appendChild(dot);
+  });
+
+  let curPage = 0;
+  function showPage(i) {
+    const ok = drawQR(canvas, wrappedPages[i]);
+    if (!ok) {
+      setTimeout(() => showPage(i), 500);
+      return;
+    }
+    // 更新分页点
+    dotsBox.querySelectorAll('.qr-page-dot').forEach((d, idx) => {
+      d.classList.toggle('active', idx === i);
+    });
+    $(tipId).textContent = `第 ${i + 1} / ${pages.length} 页，2.5 秒后切换`;
+  }
+
+  showPage(0);
+
+  // 轮播
+  renderQRPages._timers = renderQRPages._timers || {};
+  if (renderQRPages._timers[canvasId]) clearInterval(renderQRPages._timers[canvasId]);
+  renderQRPages._timers[canvasId] = setInterval(() => {
+    curPage = (curPage + 1) % pages.length;
+    showPage(curPage);
+  }, 2500);
+}
+
+// 解码时去掉分页标记
+function unwrapPages(text) {
+  // 形如 \x01N/M\x02<内容> 的多个段，拼接内容
+  const parts = text.split(/\x01\d+\/\d+\x02/).filter(Boolean);
+  if (parts.length > 1) return parts.join('');
+  // 兼容单页
+  return text.replace(/^\x01\d+\/\d+\x02/, '');
 }
 
 // ---------- 扫描二维码 ----------
@@ -602,6 +671,8 @@ async function scanQR(targetId, btn) {
   try {
     await waitForJsQR();
     scanTargetId = targetId;
+    scanPages.collected = null;   // 重置分页
+    scanCount = 0;
     const video = $('scanVideo');
     scanStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' } }
@@ -652,11 +723,46 @@ function scanTick() {
   }
 
   if (code && code.data) {
-    // 成功反馈：扫描框闪绿色
+    const text = code.data.trim();
+
+    // 检测是否为分页二维码：形如 \x01N/M\x02<内容>
+    const pageMatch = text.match(/^\x01(\d+)\/(\d+)\x02([\s\S]*)$/);
+    if (pageMatch) {
+      const cur = parseInt(pageMatch[1]);
+      const total = parseInt(pageMatch[2]);
+      const content = pageMatch[3];
+
+      // 累积分页内容
+      if (!scanPages.collected) scanPages.collected = {};
+      scanPages.collected[cur] = content;
+
+      const gotCount = Object.keys(scanPages.collected).length;
+      $('scanTip').textContent = `已扫 ${gotCount}/${total} 页${gotCount < total ? '，请继续扫剩余页面' : '，完成！'}`;
+
+      // 扫描框短暂闪绿
+      const frame = document.querySelector('.scan-frame');
+      if (frame) { frame.style.borderColor = '#10b981'; setTimeout(() => frame.style.borderColor = '', 300); }
+
+      if (gotCount === total) {
+        // 全部收集完，按页号顺序拼接
+        let full = '';
+        for (let i = 1; i <= total; i++) full += scanPages.collected[i];
+        $(scanTargetId).value = full;
+        scanPages.collected = null;
+        setTimeout(() => { stopScan(); toast(`✓ 已扫描全部 ${total} 页`); }, 400);
+      } else {
+        // 继续扫，不关闭摄像头
+        scanRAF = setTimeout(scanTick, 600);
+      }
+      return;
+    }
+
+    // 单页二维码
     const frame = document.querySelector('.scan-frame');
     if (frame) { frame.style.borderColor = '#10b981'; frame.style.boxShadow = '0 0 0 9999px rgba(16,185,129,.2)'; }
     $('scanTip').textContent = '✓ 识别成功';
-    $(scanTargetId).value = code.data.trim();
+    $(scanTargetId).value = text;
+    scanPages.collected = null;
     setTimeout(() => { stopScan(); toast('✓ 已扫描'); }, 400);
     return;
   }
@@ -665,6 +771,7 @@ function scanTick() {
   scanRAF = setTimeout(scanTick, 100);
 }
 let scanCount = 0;
+const scanPages = { collected: null };   // 保存分页扫描结果
 
 function stopScan() {
   if (scanRAF) clearTimeout(scanRAF);
