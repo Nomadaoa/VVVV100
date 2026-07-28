@@ -116,6 +116,9 @@
   }
   .modal .tip { color: #fff; margin-top: 16px; font-size: 13px; }
 </style>
+<!-- 提前加载第三方库，避免扫码时等待 -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -150,7 +153,7 @@
       <label>扫描对方返回的应答码（或粘贴）</label>
       <textarea id="answerIn" rows="3" placeholder="扫描对方的应答码 或 手动粘贴…"></textarea>
       <div class="row" style="margin-top:8px">
-        <button class="ghost sm" onclick="scanQR('answerIn')">📷 扫一扫</button>
+        <button class="ghost sm" onclick="scanQR('answerIn', this)">📷 扫一扫</button>
         <button class="ghost sm" onclick="pasteFromClipboard('answerIn')">📋 粘贴</button>
       </div>
       <button class="ghost" style="margin-top:8px" onclick="acceptAnswer()">✅ 确认应答</button>
@@ -161,7 +164,7 @@
       <label>扫描对方的连接码（或粘贴）</label>
       <textarea id="offerIn" rows="3" placeholder="扫描对方的连接码 或 手动粘贴…"></textarea>
       <div class="row" style="margin-top:8px">
-        <button class="ghost sm" onclick="scanQR('offerIn')">📷 扫一扫</button>
+        <button class="ghost sm" onclick="scanQR('offerIn', this)">📷 扫一扫</button>
         <button class="ghost sm" onclick="pasteFromClipboard('offerIn')">📋 粘贴</button>
       </div>
       <button onclick="createAnswer()">🔗 生成应答码二维码</button>
@@ -219,13 +222,28 @@ const PC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 // LZ-string (MIT, pieroxy) minified —— 压缩 SDP，缩短连接码
 var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();
 
-// SDP 精简：去掉固定的会话头 v=/s=/t=，解码时还原（这3行浏览器会忽略内容）
-const SDP_SKIP = ['v=0', 's=-', 't=0 0'];
+// SDP 精简：去掉所有可推断的行 + 精简 candidate，解码时还原
+const SDP_SKIP = [
+  'v=0', 's=-', 't=0 0',
+  'a=group:BUNDLE', 'a=extmap-allow-mixed', 'a=msid-semantic',
+  'a=ice-options', 'a=end-of-candidates',
+  'o=', 'c=IN', 'a=mid:', 'a=sctp-port:', 'a=setup:'
+];
+function shrinkCandidate(line) {
+  return line
+    .replace(/ generation \d+/g, '')
+    .replace(/ ufrag \S+/g, '')
+    .replace(/ network-cost \d+/g, '')
+    .replace(/ raddr 0\.0\.0\.0 rport 0/g, '');
+}
 function shrinkSDP(sdp) {
-  return sdp.split(/\r?\n/).filter(l => l && !SDP_SKIP.some(p => l.startsWith(p))).join('\n');
+  return sdp.split(/\r?\n/)
+    .filter(l => l && !SDP_SKIP.some(p => l.startsWith(p)))
+    .map(l => l.startsWith('a=candidate:') ? shrinkCandidate(l) : l)
+    .join('\n');
 }
 function expandSDP(body) {
-  return 'v=0\r\ns=-\r\nt=0 0\r\n' + body.split(/\r?\n/).join('\r\n');
+  return 'v=0\r\no=- 1 1 IN IP4 0.0.0.0\r\ns=-\r\nt=0 0\r\n' + body.split(/\r?\n/).join('\r\n');
 }
 
 let pc = null, dc = null, role = null;
@@ -543,14 +561,29 @@ function drawQR(canvasId, text) {
 
 // ---------- 扫描二维码 ----------
 let scanStream = null, scanRAF = null, scanTargetId = null;
-async function scanQR(targetId) {
-  if (typeof jsQR === 'undefined') {
-    toast('扫码库加载中，请稍后再试');
-    return;
-  }
-  scanTargetId = targetId;
-  const video = $('scanVideo');
+
+// 等待 jsQR 库加载完成（最多 10 秒）
+function waitForJsQR() {
+  return new Promise((resolve, reject) => {
+    if (typeof jsQR !== 'undefined') return resolve();
+    const start = Date.now();
+    const t = setInterval(() => {
+      if (typeof jsQR !== 'undefined') {
+        clearInterval(t); resolve();
+      } else if (Date.now() - start > 10000) {
+        clearInterval(t); reject(new Error('扫码库加载超时，请检查网络'));
+      }
+    }, 200);
+  });
+}
+
+async function scanQR(targetId, btn) {
+  const oldText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 加载中…'; }
   try {
+    await waitForJsQR();
+    scanTargetId = targetId;
+    const video = $('scanVideo');
     scanStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' } }
     });
@@ -560,7 +593,9 @@ async function scanQR(targetId) {
     $('scanTip').textContent = '把二维码对准框内';
     scanTick();
   } catch (e) {
-    toast('无法访问摄像头：' + (e.message || '权限被拒'));
+    toast('扫码失败：' + (e.message || '权限被拒'));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = oldText; }
   }
 }
 
@@ -608,7 +643,5 @@ async function pasteFromClipboard(id) {
   }
 }
 </script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 </body>
 </html>
