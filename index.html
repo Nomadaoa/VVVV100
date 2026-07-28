@@ -86,6 +86,35 @@
   .hidden { display: none !important; }
   .hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
   .link { color: var(--accent); text-decoration: underline; }
+
+  /* 二维码区 */
+  .qr-box {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px; background: #fff; border-radius: 12px; margin: 10px 0;
+  }
+  .qr-box canvas, .qr-box img { width: 220px; height: 220px; image-rendering: pixelated; }
+  .qr-tip { color: #64748b; font-size: 11px; margin-top: 6px; text-align: center; }
+  .switch-mode { text-align: center; margin-top: 8px; }
+  .switch-mode a { color: var(--accent); font-size: 12px; text-decoration: underline; cursor: pointer; }
+
+  /* 扫码模态 */
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 100;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .modal.show { display: flex; }
+  .modal video { max-width: 90vw; max-height: 70vh; border-radius: 12px; object-fit: cover; }
+  .modal .scan-frame {
+    position: absolute; width: 70vw; max-width: 280px; height: 70vw; max-height: 280px;
+    border: 2px solid var(--accent); border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.4); pointer-events: none;
+  }
+  .modal .close {
+    position: absolute; top: 16px; right: 16px; color: #fff; font-size: 28px;
+    background: rgba(0,0,0,.5); width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .modal .tip { color: #fff; margin-top: 16px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -107,37 +136,60 @@
 
     <!-- 创建 -->
     <div id="paneCreate">
-      <button id="btnCreate" onclick="createOffer()">🚀 生成连接码</button>
-      <label>把下面的连接码发给对方（加入房间 → 粘贴）</label>
-      <textarea id="offerOut" rows="3" readonly placeholder="点击上方按钮生成…"></textarea>
+      <button id="btnCreate" onclick="createOffer()">🚀 生成连接码二维码</button>
+      <div id="offerQr" class="qr-box hidden">
+        <canvas id="offerQrCanvas"></canvas>
+        <div class="qr-tip">📱 让对方在「加入房间」扫这个码</div>
+      </div>
+      <textarea id="offerOut" rows="2" readonly placeholder="" style="margin-top:8px"></textarea>
       <div class="row" style="margin-top:8px">
         <button class="ghost sm" onclick="copyEl('offerOut')">复制</button>
-        <button class="ghost sm" onclick="shareEl('offerOut')">系统分享</button>
+        <button class="ghost sm" onclick="shareEl('offerOut')">分享</button>
       </div>
-      <label>把对方返回的应答码粘贴到下面</label>
-      <textarea id="answerIn" rows="3" placeholder="粘贴对方生成的应答码…"></textarea>
+
+      <label>扫描对方返回的应答码（或粘贴）</label>
+      <textarea id="answerIn" rows="3" placeholder="扫描对方的应答码 或 手动粘贴…"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost sm" onclick="scanQR('answerIn')">📷 扫一扫</button>
+        <button class="ghost sm" onclick="pasteFromClipboard('answerIn')">📋 粘贴</button>
+      </div>
       <button class="ghost" style="margin-top:8px" onclick="acceptAnswer()">✅ 确认应答</button>
     </div>
 
     <!-- 加入 -->
     <div id="paneJoin" class="hidden">
-      <label>粘贴对方发来的连接码</label>
-      <textarea id="offerIn" rows="3" placeholder="粘贴对方的连接码…"></textarea>
-      <button onclick="createAnswer()">🔗 生成应答码</button>
-      <label>把下面应答码发回给对方（创建房间 → 粘贴）</label>
-      <textarea id="answerOut" rows="3" readonly placeholder="点击上方按钮生成…"></textarea>
+      <label>扫描对方的连接码（或粘贴）</label>
+      <textarea id="offerIn" rows="3" placeholder="扫描对方的连接码 或 手动粘贴…"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost sm" onclick="scanQR('offerIn')">📷 扫一扫</button>
+        <button class="ghost sm" onclick="pasteFromClipboard('offerIn')">📋 粘贴</button>
+      </div>
+      <button onclick="createAnswer()">🔗 生成应答码二维码</button>
+      <div id="answerQr" class="qr-box hidden">
+        <canvas id="answerQrCanvas"></canvas>
+        <div class="qr-tip">📱 让对方在「创建房间」扫这个码</div>
+      </div>
+      <textarea id="answerOut" rows="2" readonly placeholder="" style="margin-top:8px"></textarea>
       <div class="row" style="margin-top:8px">
         <button class="ghost sm" onclick="copyEl('answerOut')">复制</button>
-        <button class="ghost sm" onclick="shareEl('answerOut')">系统分享</button>
+        <button class="ghost sm" onclick="shareEl('answerOut')">分享</button>
       </div>
     </div>
 
     <div class="step">
-      <b>步骤：</b> A 机点"生成连接码" → 复制发给 B 机 → B 机粘贴后点"生成应答码" → 复制发回 A 机 → A 机粘贴并"确认应答" → 连接成功。
+      <b>步骤：</b> A 机「生成连接码二维码」→ B 机「加入房间」扫一扫 → B 机「生成应答码二维码」→ A 机「扫一扫应答码」→ ✅ 连接成功。
     </div>
     <div class="hint">
-      💡 两台手机用任意方式（微信/短信/口述）交换这两段短码即可。连接建立后走点对点直连，文件不经过任何服务器。建议在同一 WiFi 下使用，速度更快。
+      💡 手机对手机扫二维码即可，无需复制粘贴。连接建立后走点对点直连，文件不经过任何服务器。建议在同一 WiFi 下使用，速度更快。
     </div>
+  </div>
+
+  <!-- 扫码模态 -->
+  <div class="modal" id="scanModal">
+    <div class="close" onclick="stopScan()">×</div>
+    <video id="scanVideo" playsinline muted></video>
+    <div class="scan-frame"></div>
+    <div class="tip" id="scanTip">把二维码对准框内</div>
   </div>
 
   <!-- 传输区 -->
@@ -163,6 +215,18 @@
 <script>
 const CHUNK = 16 * 1024;        // 16KB 分片
 const PC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+// LZ-string (MIT, pieroxy) minified —— 压缩 SDP，缩短连接码
+var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();
+
+// SDP 精简：去掉固定的会话头 v=/s=/t=，解码时还原（这3行浏览器会忽略内容）
+const SDP_SKIP = ['v=0', 's=-', 't=0 0'];
+function shrinkSDP(sdp) {
+  return sdp.split(/\r?\n/).filter(l => l && !SDP_SKIP.some(p => l.startsWith(p))).join('\n');
+}
+function expandSDP(body) {
+  return 'v=0\r\ns=-\r\nt=0 0\r\n' + body.split(/\r?\n/).join('\r\n');
+}
 
 let pc = null, dc = null, role = null;
 let sendQueue = [];            // 待发送文件
@@ -254,13 +318,16 @@ async function createOffer() {
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
   await waitIce(pc);
-  $('offerOut').value = encodeSDP(pc.localDescription);
-  setStatus('connecting', '等待对方应答…');
+  const code = encodeSDP(pc.localDescription);
+  $('offerOut').value = code;
+  drawQR('offerQrCanvas', code);
+  $('offerQr').classList.remove('hidden');
+  setStatus('connecting', '等待对方扫码应答…');
 }
 
 async function acceptAnswer() {
   const raw = $('answerIn').value.trim();
-  if (!raw) return toast('请粘贴应答码');
+  if (!raw) return toast('请扫描或粘贴应答码');
   try {
     const answer = decodeSDP(raw);
     await pc.setRemoteDescription(answer);
@@ -272,7 +339,7 @@ async function acceptAnswer() {
 async function createAnswer() {
   role = 'join';
   const raw = $('offerIn').value.trim();
-  if (!raw) return toast('请先粘贴连接码');
+  if (!raw) return toast('请先扫描或粘贴连接码');
   const pc = ensurePC();
   try {
     const offer = decodeSDP(raw);
@@ -280,8 +347,11 @@ async function createAnswer() {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     await waitIce(pc);
-    $('answerOut').value = encodeSDP(pc.localDescription);
-    setStatus('connecting', '已生成应答，等待对方确认…');
+    const code = encodeSDP(pc.localDescription);
+    $('answerOut').value = code;
+    drawQR('answerQrCanvas', code);
+    $('answerQr').classList.remove('hidden');
+    setStatus('connecting', '已生成应答，等待对方扫码确认…');
   } catch (e) { toast('连接码无效'); }
 }
 
@@ -295,13 +365,16 @@ function waitIce(pc) {
   });
 }
 
+// 编码：精简 SDP → JSON → LZ-string 压缩 → URL 安全字符
 function encodeSDP(desc) {
-  // 压缩：去掉 a=candidate 之外的冗余换行
-  return btoa(unescape(encodeURIComponent(JSON.stringify({ t: desc.type, s: desc.sdp }))));
+  const obj = { t: desc.type[0], s: shrinkSDP(desc.sdp) };
+  return LZString.compressToEncodedURIComponent(JSON.stringify(obj));
 }
 function decodeSDP(str) {
-  const o = JSON.parse(decodeURIComponent(escape(atob(str))));
-  return new RTCSessionDescription({ type: o.t, sdp: o.s });
+  const json = LZString.decompressFromEncodedURIComponent(str.trim());
+  const obj = JSON.parse(json);
+  const type = obj.t === 'o' ? 'offer' : 'answer';
+  return new RTCSessionDescription({ type, sdp: expandSDP(obj.s) });
 }
 
 // ---------- 文件发送 ----------
@@ -441,6 +514,101 @@ drop.addEventListener('drop', e => {
 
 // 初始状态
 setStatus('', '未连接');
+
+// ---------- 二维码生成 ----------
+// 使用 qrcode-generator 库（CDN），异步加载重试
+function drawQR(canvasId, text) {
+  const c = $(canvasId);
+  if (!c || !text) return;
+  if (typeof qrcode === 'undefined') {
+    // 库还没加载完，500ms 后重试
+    setTimeout(() => drawQR(canvasId, text), 500);
+    return;
+  }
+  const qr = qrcode(0, 'M');    // 容错级别 M
+  qr.addData(text);
+  qr.make();
+  const size = qr.getModuleCount();
+  const ctx = c.getContext('2d');
+  const cell = 4;               // 每模块像素
+  c.width = c.height = size * cell;
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = '#000';
+  for (let r = 0; r < size; r++) {
+    for (let cc = 0; cc < size; cc++) {
+      if (qr.isDark(r, cc)) ctx.fillRect(cc * cell, r * cell, cell, cell);
+    }
+  }
+}
+
+// ---------- 扫描二维码 ----------
+let scanStream = null, scanRAF = null, scanTargetId = null;
+async function scanQR(targetId) {
+  if (typeof jsQR === 'undefined') {
+    toast('扫码库加载中，请稍后再试');
+    return;
+  }
+  scanTargetId = targetId;
+  const video = $('scanVideo');
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
+    });
+    video.srcObject = scanStream;
+    await video.play();
+    $('scanModal').classList.add('show');
+    $('scanTip').textContent = '把二维码对准框内';
+    scanTick();
+  } catch (e) {
+    toast('无法访问摄像头：' + (e.message || '权限被拒'));
+  }
+}
+
+function scanTick() {
+  const video = $('scanVideo');
+  if (!scanStream || video.readyState !== video.HAVE_ENOUGH_DATA) {
+    scanRAF = requestAnimationFrame(scanTick);
+    return;
+  }
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) { scanRAF = requestAnimationFrame(scanTick); return; }
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(video, 0, 0, w, h);
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const code = jsQR(imgData.data, w, h, { inversionAttempts: 'attemptOnly' });
+  if (code && code.data) {
+    $(scanTargetId).value = code.data.trim();
+    stopScan();
+    toast('✓ 已扫描');
+    return;
+  }
+  scanRAF = requestAnimationFrame(scanTick);
+}
+
+function stopScan() {
+  if (scanRAF) cancelAnimationFrame(scanRAF);
+  scanRAF = null;
+  if (scanStream) {
+    scanStream.getTracks().forEach(t => t.stop());
+    scanStream = null;
+  }
+  $('scanModal').classList.remove('show');
+}
+
+// ---------- 粘贴按钮 ----------
+async function pasteFromClipboard(id) {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text) { $(id).value = text.trim(); toast('已粘贴'); }
+    else toast('剪贴板为空');
+  } catch (e) {
+    toast('请手动粘贴（长按输入框）');
+  }
+}
 </script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 </body>
 </html>
