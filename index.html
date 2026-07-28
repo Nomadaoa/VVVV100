@@ -222,7 +222,7 @@ const PC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 // LZ-string (MIT, pieroxy) minified —— 压缩 SDP，缩短连接码
 var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();
 
-// SDP 超紧凑编码：用单字母前缀代替完整行，去掉所有可推断字段
+// SDP 超紧凑编码：用单字符前缀代替完整行，去掉所有可推断字段，用 ; 分隔
 const SDP_SKIP = [
   'v=0', 's=-', 't=0 0',
   'a=group:BUNDLE', 'a=extmap-allow-mixed', 'a=msid-semantic',
@@ -234,33 +234,33 @@ function shrinkSDP(sdp) {
     .filter(l => l && !SDP_SKIP.some(p => l.startsWith(p)))
     .map(l => {
       if (l.startsWith('a=candidate:')) {
-        // a=candidate:1 1 udp 2122252543 192.168.1.100 54321 typ host [generation 0 ufrag abcd network-cost 999]
-        // -> C|1,1,udp,2122252543,192.168.1.100,54321,host
+        // a=candidate:1 1 udp 2122252543 192.168.1.100 54321 typ host
+        // -> C1,1,udp,2122252543,192.168.1.100,54321,host
         const parts = l.slice('a=candidate:'.length).split(' ');
-        return 'C|' + [parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[7]].join(',');
+        return 'C' + [parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[7]].join(',');
       }
       if (l.startsWith('a=fingerprint:sha-256 ')) {
-        return 'F|' + l.slice('a=fingerprint:sha-256 '.length).replace(/:/g, '');
+        return 'F' + l.slice('a=fingerprint:sha-256 '.length).replace(/:/g, '');
       }
-      if (l.startsWith('a=ice-ufrag:')) return 'U|' + l.slice(12);
-      if (l.startsWith('a=ice-pwd:')) return 'P|' + l.slice(10);
+      if (l.startsWith('a=ice-ufrag:')) return 'U' + l.slice(12);
+      if (l.startsWith('a=ice-pwd:')) return 'P' + l.slice(10);
       if (l.startsWith('m=application 9 UDP/DTLS/SCTP webrtc-datachannel')) return 'M';
       return l;
     })
-    .join('\n');
+    .join(';');
 }
 function expandSDP(compact) {
-  const lines = compact.split('\n').map(l => {
+  const lines = compact.split(';').map(l => {
     if (l === 'M') return 'm=application 9 UDP/DTLS/SCTP webrtc-datachannel';
-    if (l.startsWith('C|')) {
-      const parts = l.slice(2).split(',');
+    if (l.startsWith('C')) {
+      const parts = l.slice(1).split(',');
       return `a=candidate:${parts[0]} ${parts[1]} ${parts[2]} ${parts[3]} ${parts[4]} ${parts[5]} typ ${parts[6]}`;
     }
-    if (l.startsWith('F|')) {
-      return 'a=fingerprint:sha-256 ' + l.slice(2).match(/.{2}/g).join(':');
+    if (l.startsWith('F')) {
+      return 'a=fingerprint:sha-256 ' + l.slice(1).match(/.{2}/g).join(':');
     }
-    if (l.startsWith('U|')) return 'a=ice-ufrag:' + l.slice(2);
-    if (l.startsWith('P|')) return 'a=ice-pwd:' + l.slice(2);
+    if (l.startsWith('U')) return 'a=ice-ufrag:' + l.slice(1);
+    if (l.startsWith('P')) return 'a=ice-pwd:' + l.slice(1);
     return l;
   });
   return 'v=0\r\no=- 1 1 IN IP4 0.0.0.0\r\ns=-\r\nt=0 0\r\n' + lines.join('\r\n');
@@ -620,35 +620,63 @@ async function scanQR(targetId, btn) {
 
 function scanTick() {
   const video = $('scanVideo');
-  if (!scanStream || video.readyState !== video.HAVE_ENOUGH_DATA) {
-    scanRAF = requestAnimationFrame(scanTick);
+  if (!scanStream) return;
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+    $('scanTip').textContent = '正在启动摄像头…';
+    scanRAF = setTimeout(scanTick, 100);
     return;
   }
   const w = video.videoWidth, h = video.videoHeight;
-  if (!w || !h) { scanRAF = requestAnimationFrame(scanTick); return; }
+  if (!w || !h) { scanRAF = setTimeout(scanTick, 100); return; }
+
+  // 只扫描画面中央 70% 区域，提高识别率和速度
+  const crop = 0.7;
+  const cw = Math.floor(w * crop), ch = Math.floor(h * crop);
+  const ox = Math.floor((w - cw) / 2), oy = Math.floor((h - ch) / 2);
+
   const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
+  canvas.width = cw; canvas.height = ch;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(video, 0, 0, w, h);
-  const imgData = ctx.getImageData(0, 0, w, h);
-  const code = jsQR(imgData.data, w, h, { inversionAttempts: 'attemptOnly' });
+  ctx.drawImage(video, ox, oy, cw, ch, 0, 0, cw, ch);
+  const imgData = ctx.getImageData(0, 0, cw, ch);
+
+  let code = null;
+  try {
+    code = jsQR(imgData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
+  } catch (e) { /* ignore */ }
+
+  // 计数器：让用户看到扫描正在进行
+  scanCount = (scanCount || 0) + 1;
+  if (scanCount % 10 === 0) {
+    $('scanTip').textContent = `扫描中…（${scanCount} 帧，请对准二维码，距离 10-20cm）`;
+  }
+
   if (code && code.data) {
+    // 成功反馈：扫描框闪绿色
+    const frame = document.querySelector('.scan-frame');
+    if (frame) { frame.style.borderColor = '#10b981'; frame.style.boxShadow = '0 0 0 9999px rgba(16,185,129,.2)'; }
+    $('scanTip').textContent = '✓ 识别成功';
     $(scanTargetId).value = code.data.trim();
-    stopScan();
-    toast('✓ 已扫描');
+    setTimeout(() => { stopScan(); toast('✓ 已扫描'); }, 400);
     return;
   }
-  scanRAF = requestAnimationFrame(scanTick);
+
+  // 限制每秒约 10 次扫描，避免 CPU 占满导致卡顿
+  scanRAF = setTimeout(scanTick, 100);
 }
+let scanCount = 0;
 
 function stopScan() {
-  if (scanRAF) cancelAnimationFrame(scanRAF);
+  if (scanRAF) clearTimeout(scanRAF);
   scanRAF = null;
   if (scanStream) {
     scanStream.getTracks().forEach(t => t.stop());
     scanStream = null;
   }
   $('scanModal').classList.remove('show');
+  // 重置扫描框样式
+  const frame = document.querySelector('.scan-frame');
+  if (frame) { frame.style.borderColor = ''; frame.style.boxShadow = ''; }
 }
 
 // ---------- 粘贴按钮 ----------
