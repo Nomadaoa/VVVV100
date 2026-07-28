@@ -92,14 +92,8 @@
     display: flex; flex-direction: column; align-items: center;
     padding: 12px; background: #fff; border-radius: 12px; margin: 10px 0;
   }
-  .qr-box canvas { width: 260px; height: 260px; image-rendering: pixelated; background: #fff; }
+  .qr-box canvas { width: 280px; height: 280px; image-rendering: pixelated; background: #fff; }
   .qr-tip { color: #64748b; font-size: 11px; margin-top: 6px; text-align: center; }
-  .qr-pages { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
-  .qr-page-dot {
-    width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1;
-  }
-  .qr-page-dot.active { background: #6366f1; }
-  .qr-len { color: #64748b; font-size: 10px; text-align: center; margin-top: 4px; }
 
   /* 扫码模态 */
   .modal {
@@ -146,9 +140,7 @@
       <button id="btnCreate" onclick="createOffer()">🚀 生成连接码二维码</button>
       <div id="offerQr" class="qr-box hidden">
         <canvas id="offerQrCanvas"></canvas>
-        <div class="qr-pages" id="offerQrPages"></div>
-        <div class="qr-tip" id="offerQrTip">📱 让对方在「加入房间」逐个扫这些码</div>
-        <div class="qr-len" id="offerQrLen"></div>
+        <div class="qr-tip">📱 让对方在「加入房间」扫这个码</div>
       </div>
       <textarea id="offerOut" rows="2" readonly placeholder="" style="margin-top:8px"></textarea>
       <div class="row" style="margin-top:8px">
@@ -176,9 +168,7 @@
       <button onclick="createAnswer()">🔗 生成应答码二维码</button>
       <div id="answerQr" class="qr-box hidden">
         <canvas id="answerQrCanvas"></canvas>
-        <div class="qr-pages" id="answerQrPages"></div>
-        <div class="qr-tip" id="answerQrTip">📱 让对方在「创建房间」逐个扫这些码</div>
-        <div class="qr-len" id="answerQrLen"></div>
+        <div class="qr-tip">📱 让对方在「创建房间」扫这个码</div>
       </div>
       <textarea id="answerOut" rows="2" readonly placeholder="" style="margin-top:8px"></textarea>
       <div class="row" style="margin-top:8px">
@@ -230,48 +220,50 @@ const PC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 // LZ-string (MIT, pieroxy) minified —— 压缩 SDP，缩短连接码
 var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();
 
-// SDP 超紧凑编码：用单字符前缀代替完整行，去掉所有可推断字段，用 ; 分隔
+// SDP 终极精简：只保留必需字段，candidate 只留 typ/ip/port
 const SDP_SKIP = [
   'v=0', 's=-', 't=0 0',
   'a=group:BUNDLE', 'a=extmap-allow-mixed', 'a=msid-semantic',
   'a=ice-options', 'a=end-of-candidates',
-  'o=', 'c=IN', 'a=mid:', 'a=sctp-port:', 'a=setup:'
+  'o=', 'c=IN', 'a=mid:', 'a=sctp-port:', 'a=setup:',
+  'm=application'
 ];
+const CAND_PRIORITY = { host: '2122252543', srflx: '1686052607', relay: '4223069951', prflx: '1518280447' };
 function shrinkSDP(sdp) {
-  return sdp.split(/\r?\n/)
-    .filter(l => l && !SDP_SKIP.some(p => l.startsWith(p)))
-    .map(l => {
-      if (l.startsWith('a=candidate:')) {
-        // a=candidate:1 1 udp 2122252543 192.168.1.100 54321 typ host
-        // -> C1,1,udp,2122252543,192.168.1.100,54321,host
-        const parts = l.slice('a=candidate:'.length).split(' ');
-        return 'C' + [parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[7]].join(',');
-      }
-      if (l.startsWith('a=fingerprint:sha-256 ')) {
-        return 'F' + l.slice('a=fingerprint:sha-256 '.length).replace(/:/g, '');
-      }
-      if (l.startsWith('a=ice-ufrag:')) return 'U' + l.slice(12);
-      if (l.startsWith('a=ice-pwd:')) return 'P' + l.slice(10);
-      if (l.startsWith('m=application 9 UDP/DTLS/SCTP webrtc-datachannel')) return 'M';
-      return l;
-    })
-    .join(';');
+  const fields = [];
+  for (const l of sdp.split(/\r?\n/)) {
+    if (!l || SDP_SKIP.some(p => l.startsWith(p))) continue;
+    if (l.startsWith('a=candidate:')) {
+      const parts = l.slice('a=candidate:'.length).split(' ');
+      // c|typ|ip|port
+      fields.push('c|' + parts[7] + '|' + parts[4] + '|' + parts[5]);
+    } else if (l.startsWith('a=fingerprint:sha-256 ')) {
+      fields.push('f' + l.slice('a=fingerprint:sha-256 '.length).replace(/:/g, ''));
+    } else if (l.startsWith('a=ice-ufrag:')) {
+      fields.push('u' + l.slice(12));
+    } else if (l.startsWith('a=ice-pwd:')) {
+      fields.push('p' + l.slice(10));
+    }
+  }
+  return fields.join(';');
 }
 function expandSDP(compact) {
-  const lines = compact.split(';').map(l => {
-    if (l === 'M') return 'm=application 9 UDP/DTLS/SCTP webrtc-datachannel';
-    if (l.startsWith('C')) {
-      const parts = l.slice(1).split(',');
-      return `a=candidate:${parts[0]} ${parts[1]} ${parts[2]} ${parts[3]} ${parts[4]} ${parts[5]} typ ${parts[6]}`;
+  const lines = [];
+  for (const f of compact.split(';')) {
+    if (f.startsWith('c|')) {
+      const parts = f.slice(2).split('|');
+      const typ = parts[0], ip = parts[1], port = parts[2];
+      const prio = CAND_PRIORITY[typ] || '2122252543';
+      lines.push(`a=candidate:1 1 udp ${prio} ${ip} ${port} typ ${typ}`);
+    } else if (f.startsWith('f')) {
+      lines.push('a=fingerprint:sha-256 ' + f.slice(1).match(/.{2}/g).join(':'));
+    } else if (f.startsWith('u')) {
+      lines.push('a=ice-ufrag:' + f.slice(1));
+    } else if (f.startsWith('p')) {
+      lines.push('a=ice-pwd:' + f.slice(1));
     }
-    if (l.startsWith('F')) {
-      return 'a=fingerprint:sha-256 ' + l.slice(1).match(/.{2}/g).join(':');
-    }
-    if (l.startsWith('U')) return 'a=ice-ufrag:' + l.slice(1);
-    if (l.startsWith('P')) return 'a=ice-pwd:' + l.slice(1);
-    return l;
-  });
-  return 'v=0\r\no=- 1 1 IN IP4 0.0.0.0\r\ns=-\r\nt=0 0\r\n' + lines.join('\r\n');
+  }
+  return 'v=0\r\no=- 1 1 IN IP4 0.0.0.0\r\ns=-\r\nt=0 0\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\n' + lines.join('\r\n');
 }
 
 let pc = null, dc = null, role = null;
@@ -366,9 +358,9 @@ async function createOffer() {
   await waitIce(pc);
   const code = encodeSDP(pc.localDescription);
   $('offerOut').value = code;
-  renderQRPages('offerQrCanvas', 'offerQrPages', 'offerQrTip', 'offerQrLen', code);
+  drawQR('offerQrCanvas', code);
   $('offerQr').classList.remove('hidden');
-  setStatus('connecting', '等待对方扫码应答…');
+  setStatus('connecting', '等待对方应答…');
 }
 
 async function acceptAnswer() {
@@ -395,9 +387,9 @@ async function createAnswer() {
     await waitIce(pc);
     const code = encodeSDP(pc.localDescription);
   $('answerOut').value = code;
-  renderQRPages('answerQrCanvas', 'answerQrPages', 'answerQrTip', 'answerQrLen', code);
+  drawQR('answerQrCanvas', code);
   $('answerQr').classList.remove('hidden');
-  setStatus('connecting', '已生成应答，等待对方扫码确认…');
+  setStatus('connecting', '已生成应答，等待对方确认…');
 } catch (e) { toast('连接码无效'); }
 }
 
@@ -561,19 +553,20 @@ drop.addEventListener('drop', e => {
 // 初始状态
 setStatus('', '未连接');
 
-// ---------- 二维码生成（带分页） ----------
-// 每页最大字符数：实测 120 字符以内的二维码能可靠识别
-const QR_PAGE_MAX = 120;
-
-// 单次绘制二维码到 canvas
-function drawQR(canvas, text) {
-  if (typeof qrcode === 'undefined') return false;
-  const qr = qrcode(0, 'L');
+// ---------- 二维码生成 ----------
+function drawQR(canvasId, text) {
+  const canvas = $(canvasId);
+  if (!canvas || !text) return;
+  if (typeof qrcode === 'undefined') {
+    setTimeout(() => drawQR(canvasId, text), 500);
+    return;
+  }
+  const qr = qrcode(0, 'L');    // 容错 L：容量最大
   qr.addData(text);
   qr.make();
   const size = qr.getModuleCount();
   const ctx = canvas.getContext('2d');
-  const cell = 8;
+  const cell = 10;                // 模块像素大，扫码更容易
   canvas.width = canvas.height = size * cell;
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#000';
@@ -582,69 +575,6 @@ function drawQR(canvas, text) {
       if (qr.isDark(r, cc)) ctx.fillRect(cc * cell, r * cell, cell, cell);
     }
   }
-  return true;
-}
-
-// 分页渲染：把长字符串拆成 N 个短串，轮播展示
-function renderQRPages(canvasId, pagesId, tipId, lenId, fullText) {
-  const canvas = $(canvasId);
-  if (!canvas) return;
-
-  // 把字符串切成多页
-  const pages = [];
-  for (let i = 0; i < fullText.length; i += QR_PAGE_MAX) {
-    pages.push(fullText.slice(i, i + QR_PAGE_MAX));
-  }
-
-  // 给每页加序号标记：用 \x01 + 页号 + \x02 包起来，解码时去掉
-  const wrappedPages = pages.map((p, i) =>
-    `\x01${i + 1}/${pages.length}\x02${p}`
-  );
-
-  // 长度提示
-  $(lenId).textContent = `原始码 ${fullText.length} 字符，拆为 ${pages.length} 个二维码`;
-
-  // 渲染分页点
-  const dotsBox = $(pagesId);
-  dotsBox.innerHTML = '';
-  wrappedPages.forEach((_, i) => {
-    const dot = document.createElement('div');
-    dot.className = 'qr-page-dot' + (i === 0 ? ' active' : '');
-    dotsBox.appendChild(dot);
-  });
-
-  let curPage = 0;
-  function showPage(i) {
-    const ok = drawQR(canvas, wrappedPages[i]);
-    if (!ok) {
-      setTimeout(() => showPage(i), 500);
-      return;
-    }
-    // 更新分页点
-    dotsBox.querySelectorAll('.qr-page-dot').forEach((d, idx) => {
-      d.classList.toggle('active', idx === i);
-    });
-    $(tipId).textContent = `第 ${i + 1} / ${pages.length} 页，2.5 秒后切换`;
-  }
-
-  showPage(0);
-
-  // 轮播
-  renderQRPages._timers = renderQRPages._timers || {};
-  if (renderQRPages._timers[canvasId]) clearInterval(renderQRPages._timers[canvasId]);
-  renderQRPages._timers[canvasId] = setInterval(() => {
-    curPage = (curPage + 1) % pages.length;
-    showPage(curPage);
-  }, 2500);
-}
-
-// 解码时去掉分页标记
-function unwrapPages(text) {
-  // 形如 \x01N/M\x02<内容> 的多个段，拼接内容
-  const parts = text.split(/\x01\d+\/\d+\x02/).filter(Boolean);
-  if (parts.length > 1) return parts.join('');
-  // 兼容单页
-  return text.replace(/^\x01\d+\/\d+\x02/, '');
 }
 
 // ---------- 扫描二维码 ----------
@@ -671,7 +601,6 @@ async function scanQR(targetId, btn) {
   try {
     await waitForJsQR();
     scanTargetId = targetId;
-    scanPages.collected = null;   // 重置分页
     scanCount = 0;
     const video = $('scanVideo');
     scanStream = await navigator.mediaDevices.getUserMedia({
@@ -724,45 +653,10 @@ function scanTick() {
 
   if (code && code.data) {
     const text = code.data.trim();
-
-    // 检测是否为分页二维码：形如 \x01N/M\x02<内容>
-    const pageMatch = text.match(/^\x01(\d+)\/(\d+)\x02([\s\S]*)$/);
-    if (pageMatch) {
-      const cur = parseInt(pageMatch[1]);
-      const total = parseInt(pageMatch[2]);
-      const content = pageMatch[3];
-
-      // 累积分页内容
-      if (!scanPages.collected) scanPages.collected = {};
-      scanPages.collected[cur] = content;
-
-      const gotCount = Object.keys(scanPages.collected).length;
-      $('scanTip').textContent = `已扫 ${gotCount}/${total} 页${gotCount < total ? '，请继续扫剩余页面' : '，完成！'}`;
-
-      // 扫描框短暂闪绿
-      const frame = document.querySelector('.scan-frame');
-      if (frame) { frame.style.borderColor = '#10b981'; setTimeout(() => frame.style.borderColor = '', 300); }
-
-      if (gotCount === total) {
-        // 全部收集完，按页号顺序拼接
-        let full = '';
-        for (let i = 1; i <= total; i++) full += scanPages.collected[i];
-        $(scanTargetId).value = full;
-        scanPages.collected = null;
-        setTimeout(() => { stopScan(); toast(`✓ 已扫描全部 ${total} 页`); }, 400);
-      } else {
-        // 继续扫，不关闭摄像头
-        scanRAF = setTimeout(scanTick, 600);
-      }
-      return;
-    }
-
-    // 单页二维码
     const frame = document.querySelector('.scan-frame');
     if (frame) { frame.style.borderColor = '#10b981'; frame.style.boxShadow = '0 0 0 9999px rgba(16,185,129,.2)'; }
     $('scanTip').textContent = '✓ 识别成功';
     $(scanTargetId).value = text;
-    scanPages.collected = null;
     setTimeout(() => { stopScan(); toast('✓ 已扫描'); }, 400);
     return;
   }
@@ -771,7 +665,6 @@ function scanTick() {
   scanRAF = setTimeout(scanTick, 100);
 }
 let scanCount = 0;
-const scanPages = { collected: null };   // 保存分页扫描结果
 
 function stopScan() {
   if (scanRAF) clearTimeout(scanRAF);
