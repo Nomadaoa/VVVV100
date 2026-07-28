@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>局域网文件互传</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0f172a; --card: #1e293b; --card2: #334155; --accent: #6366f1;
+    --accent2: #8b5cf6; --ok: #10b981; --warn: #f59e0b; --err: #ef4444;
+    --txt: #e2e8f0; --muted: #94a3b8; --bd: #475569;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+    color: var(--txt); min-height: 100vh; padding: 12px; font-size: 15px;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 20px; text-align: center; margin: 8px 0 4px; }
+  .sub { text-align: center; color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+  .card {
+    background: var(--card); border: 1px solid var(--bd); border-radius: 14px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  .status {
+    display: flex; align-items: center; gap: 8px; font-size: 13px;
+    padding: 10px 12px; border-radius: 10px; background: var(--card2); margin-bottom: 12px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .dot.connecting { background: var(--warn); animation: pulse 1s infinite; }
+  .dot.connected { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  @keyframes pulse { 50% { opacity: 0.4; } }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tab {
+    flex: 1; padding: 12px; text-align: center; border-radius: 10px;
+    background: var(--card2); border: 2px solid transparent; cursor: pointer;
+    font-size: 14px; color: var(--txt); transition: .2s;
+  }
+  .tab.active { border-color: var(--accent); background: rgba(99,102,241,.15); }
+  .tab:disabled { opacity: .4; cursor: not-allowed; }
+
+  label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0 4px; }
+  textarea, input {
+    width: 100%; background: var(--bg); border: 1px solid var(--bd); color: var(--txt);
+    border-radius: 8px; padding: 10px; font-size: 12px; font-family: ui-monospace, monospace;
+    resize: vertical;
+  }
+  textarea { word-break: break-all; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row textarea, .row input { flex: 1; }
+
+  button {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; border: none; border-radius: 10px; padding: 12px 16px;
+    font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; transition: .2s;
+  }
+  button:active { transform: scale(.98); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.ghost { background: var(--card2); }
+  button.sm { width: auto; padding: 8px 12px; font-size: 12px; }
+
+  .dropzone {
+    border: 2px dashed var(--bd); border-radius: 12px; padding: 28px 12px;
+    text-align: center; color: var(--muted); transition: .2s; cursor: pointer;
+  }
+  .dropzone.over { border-color: var(--accent); background: rgba(99,102,241,.1); color: var(--txt); }
+  .dropzone .big { font-size: 32px; margin-bottom: 6px; }
+
+  .fitem {
+    background: var(--card2); border-radius: 10px; padding: 10px 12px; margin-top: 8px;
+    display: flex; align-items: center; gap: 10px; font-size: 13px;
+  }
+  .fitem .icon { font-size: 22px; }
+  .fitem .info { flex: 1; min-width: 0; }
+  .fitem .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fitem .meta { font-size: 11px; color: var(--muted); }
+  .bar { height: 4px; background: var(--bg); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .15s; }
+  .fitem.done .bar > i { background: var(--ok); }
+  .fitem.err .bar > i { background: var(--err); }
+
+  .step { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+  .step b { color: var(--accent); }
+  .hidden { display: none !important; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .link { color: var(--accent); text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📡 局域网文件互传</h1>
+  <div class="sub">同一 WiFi 下，两台手机互传 · 纯浏览器 · 点对点加密</div>
+
+  <div class="status">
+    <span class="dot" id="dot"></span>
+    <span id="statusText">未连接</span>
+  </div>
+
+  <!-- 连接区 -->
+  <div class="card" id="connCard">
+    <div class="tabs">
+      <div class="tab active" id="tabCreate" onclick="switchTab('create')">① 创建房间</div>
+      <div class="tab" id="tabJoin" onclick="switchTab('join')">② 加入房间</div>
+    </div>
+
+    <!-- 创建 -->
+    <div id="paneCreate">
+      <button id="btnCreate" onclick="createOffer()">🚀 生成连接码</button>
+      <label>把下面的连接码发给对方（加入房间 → 粘贴）</label>
+      <textarea id="offerOut" rows="3" readonly placeholder="点击上方按钮生成…"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost sm" onclick="copyEl('offerOut')">复制</button>
+        <button class="ghost sm" onclick="shareEl('offerOut')">系统分享</button>
+      </div>
+      <label>把对方返回的应答码粘贴到下面</label>
+      <textarea id="answerIn" rows="3" placeholder="粘贴对方生成的应答码…"></textarea>
+      <button class="ghost" style="margin-top:8px" onclick="acceptAnswer()">✅ 确认应答</button>
+    </div>
+
+    <!-- 加入 -->
+    <div id="paneJoin" class="hidden">
+      <label>粘贴对方发来的连接码</label>
+      <textarea id="offerIn" rows="3" placeholder="粘贴对方的连接码…"></textarea>
+      <button onclick="createAnswer()">🔗 生成应答码</button>
+      <label>把下面应答码发回给对方（创建房间 → 粘贴）</label>
+      <textarea id="answerOut" rows="3" readonly placeholder="点击上方按钮生成…"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost sm" onclick="copyEl('answerOut')">复制</button>
+        <button class="ghost sm" onclick="shareEl('answerOut')">系统分享</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <b>步骤：</b> A 机点"生成连接码" → 复制发给 B 机 → B 机粘贴后点"生成应答码" → 复制发回 A 机 → A 机粘贴并"确认应答" → 连接成功。
+    </div>
+    <div class="hint">
+      💡 两台手机用任意方式（微信/短信/口述）交换这两段短码即可。连接建立后走点对点直连，文件不经过任何服务器。建议在同一 WiFi 下使用，速度更快。
+    </div>
+  </div>
+
+  <!-- 传输区 -->
+  <div class="card" id="sendCard">
+    <div class="dropzone" id="drop">
+      <div class="big">📁</div>
+      <div>点击选择文件 或 拖拽到此处</div>
+      <div style="font-size:11px;margin-top:4px">支持任意类型 · 可多选</div>
+      <input type="file" id="fileInput" multiple style="display:none">
+    </div>
+  </div>
+
+  <div class="card" id="recvCard">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">📤 发送 / 接收列表</div>
+    <div id="list"></div>
+  </div>
+
+  <div class="hint" style="text-align:center;margin-bottom:20px">
+    已连接后双方均可互发文件 · 收到的文件会自动下载
+  </div>
+</div>
+
+<script>
+const CHUNK = 16 * 1024;        // 16KB 分片
+const PC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+let pc = null, dc = null, role = null;
+let sendQueue = [];            // 待发送文件
+let recvCtx = null;            // 接收中的文件上下文
+let busy = false;
+
+const $ = id => document.getElementById(id);
+const dot = $('dot'), statusText = $('statusText');
+
+function setStatus(state, text) {
+  dot.className = 'dot' + (state ? ' ' + state : '');
+  statusText.textContent = text;
+}
+
+function switchTab(t) {
+  const isCreate = t === 'create';
+  $('tabCreate').classList.toggle('active', isCreate);
+  $('tabJoin').classList.toggle('active', !isCreate);
+  $('paneCreate').classList.toggle('hidden', !isCreate);
+  $('paneJoin').classList.toggle('hidden', isCreate);
+}
+
+function copyEl(id) {
+  const v = $(id).value.trim();
+  if (!v) return;
+  navigator.clipboard?.writeText(v).then(() => toast('已复制'), () => fallbackCopy(v));
+}
+function fallbackCopy(v) {
+  const t = document.createElement('textarea');
+  t.value = v; document.body.appendChild(t); t.select();
+  try { document.execCommand('copy'); toast('已复制'); } catch(e){ toast('复制失败，请手动复制'); }
+  document.body.removeChild(t);
+}
+async function shareEl(id) {
+  const v = $(id).value.trim();
+  if (!v) return;
+  if (navigator.share) {
+    try { await navigator.share({ text: v }); } catch(e) {}
+  } else { copyEl(id); }
+}
+
+let toastTimer = null;
+function toast(msg) {
+  let t = $('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;z-index:99;transition:opacity .3s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.style.opacity = '0', 1600);
+}
+
+// ---------- WebRTC ----------
+function ensurePC() {
+  if (pc) return pc;
+  pc = new RTCPeerConnection(PC_CONFIG);
+  pc.oniceconnectionstatechange = () => {
+    const s = pc.iceConnectionState;
+    if (s === 'connected' || s === 'completed') setStatus('connected', '已连接 ✓ 可互传文件');
+    else if (s === 'disconnected' || s === 'failed') {
+      setStatus('', '连接已断开');
+      dc = null;
+    }
+  };
+  pc.ondatachannel = e => setupChannel(e.channel);
+  return pc;
+}
+
+function setupChannel(channel) {
+  dc = channel;
+  dc.binaryType = 'arraybuffer';
+  dc.bufferedAmountLowThreshold = CHUNK * 4;
+  dc.onbufferedamountlow = pump;
+  dc.onmessage = onMessage;
+  dc.onopen = () => setStatus('connected', '已连接 ✓ 可互传文件');
+  dc.onclose = () => { setStatus('', '连接已断开'); dc = null; };
+}
+
+// 创建端
+async function createOffer() {
+  role = 'create';
+  $('btnCreate').disabled = true;
+  const pc = ensurePC();
+  dc = pc.createDataChannel('file', { ordered: true });
+  setupChannel(dc);
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await waitIce(pc);
+  $('offerOut').value = encodeSDP(pc.localDescription);
+  setStatus('connecting', '等待对方应答…');
+}
+
+async function acceptAnswer() {
+  const raw = $('answerIn').value.trim();
+  if (!raw) return toast('请粘贴应答码');
+  try {
+    const answer = decodeSDP(raw);
+    await pc.setRemoteDescription(answer);
+    setStatus('connecting', '正在建立连接…');
+  } catch (e) { toast('应答码无效'); }
+}
+
+// 加入端
+async function createAnswer() {
+  role = 'join';
+  const raw = $('offerIn').value.trim();
+  if (!raw) return toast('请先粘贴连接码');
+  const pc = ensurePC();
+  try {
+    const offer = decodeSDP(raw);
+    await pc.setRemoteDescription(offer);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await waitIce(pc);
+    $('answerOut').value = encodeSDP(pc.localDescription);
+    setStatus('connecting', '已生成应答，等待对方确认…');
+  } catch (e) { toast('连接码无效'); }
+}
+
+function waitIce(pc) {
+  return new Promise(res => {
+    if (pc.iceGatheringState === 'complete') return res();
+    const t = setTimeout(() => res(), 2000); // 最多等 2s
+    pc.onicegatheringstatechange = () => {
+      if (pc.iceGatheringState === 'complete') { clearTimeout(t); res(); }
+    };
+  });
+}
+
+function encodeSDP(desc) {
+  // 压缩：去掉 a=candidate 之外的冗余换行
+  return btoa(unescape(encodeURIComponent(JSON.stringify({ t: desc.type, s: desc.sdp }))));
+}
+function decodeSDP(str) {
+  const o = JSON.parse(decodeURIComponent(escape(atob(str))));
+  return new RTCSessionDescription({ type: o.t, sdp: o.s });
+}
+
+// ---------- 文件发送 ----------
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1073741824) return (b/1048576).toFixed(1) + ' MB';
+  return (b/1073741824).toFixed(2) + ' GB';
+}
+
+function addFileItem(name, size, dir) {
+  const id = 'f' + Math.random().toString(36).slice(2);
+  const el = document.createElement('div');
+  el.className = 'fitem'; el.id = id;
+  el.innerHTML = `
+    <div class="icon">${dir === 'in' ? '⬇️' : '⬆️'}</div>
+    <div class="info">
+      <div class="name"></div>
+      <div class="meta">${fmtSize(size)} · ${dir === 'in' ? '接收中' : '排队中'}</div>
+      <div class="bar"><i></i></div>
+    </div>`;
+  el.querySelector('.name').textContent = name;
+  $('list').prepend(el);
+  return {
+    setProgress(p) { el.querySelector('.bar > i').style.width = (p*100).toFixed(1) + '%'; },
+    setMeta(t) { el.querySelector('.meta').textContent = `${fmtSize(size)} · ${t}`; },
+    done() { el.classList.add('done'); el.querySelector('.meta').textContent = `${fmtSize(size)} · 完成`; el.querySelector('.bar > i').style.width = '100%'; },
+    err(msg) { el.classList.add('err'); el.querySelector('.meta').textContent = `${fmtSize(size)} · 失败: ${msg}`; }
+  };
+}
+
+function enqueueFiles(files) {
+  if (!dc || dc.readyState !== 'open') return toast('请先建立连接');
+  for (const f of files) sendQueue.push(f);
+  pump();
+}
+
+async function pump() {
+  if (busy) return;
+  if (!dc || dc.readyState !== 'open') return;
+  const file = sendQueue.shift();
+  if (!file) return;
+  busy = true;
+  const ui = addFileItem(file.name, file.size, 'out');
+  ui.setMeta(`${fmtSize(file.size)} · 发送中`);
+
+  const meta = JSON.stringify({
+    kind: 'meta', name: file.name, size: file.size,
+    mime: file.type || 'application/octet-stream'
+  });
+  dc.send(meta);
+  await new Promise(r => setTimeout(r, 50));
+
+  let offset = 0;
+  const reader = file.stream().getReader();
+  try {
+    while (true) {
+      // 背压控制
+      while (dc.bufferedAmount > 4 * 1024 * 1024) {
+        await new Promise(r => dc.addEventListener('bufferedamountlow', r, { once: true }));
+      }
+      const { done, value } = await reader.read();
+      if (done) break;
+      // value 是 Uint8Array，可能较大，按 CHUNK 拆
+      let pos = 0;
+      while (pos < value.length) {
+        const slice = value.subarray(pos, pos + CHUNK);
+        dc.send(slice);
+        pos += slice.length;
+        offset += slice.length;
+      }
+      ui.setProgress(offset / file.size);
+    }
+    dc.send(JSON.stringify({ kind: 'done' }));
+    ui.done();
+  } catch (e) {
+    ui.err(e.message || '发送中断');
+  } finally {
+    busy = false;
+    pump();
+  }
+}
+
+// ---------- 文件接收 ----------
+function onMessage(e) {
+  const data = e.data;
+  if (typeof data === 'string') {
+    const msg = JSON.parse(data);
+    if (msg.kind === 'meta') startRecv(msg);
+    else if (msg.kind === 'done') finishRecv();
+    else if (msg.kind === 'cancel') recvCtx = null;
+  } else {
+    // 二进制分片
+    if (recvCtx) {
+      recvCtx.chunks.push(data);
+      recvCtx.received += data.byteLength;
+      recvCtx.ui.setProgress(recvCtx.received / recvCtx.meta.size);
+    }
+  }
+}
+
+function startRecv(meta) {
+  recvCtx = { meta, chunks: [], received: 0, ui: addFileItem(meta.name, meta.size, 'in') };
+  recvCtx.ui.setMeta(`${fmtSize(meta.size)} · 接收中`);
+}
+
+function finishRecv() {
+  if (!recvCtx) return;
+  const { meta, chunks, ui } = recvCtx;
+  const blob = new Blob(chunks, { type: meta.mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = meta.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  ui.done();
+  recvCtx = null;
+}
+
+// ---------- 文件选择 / 拖拽 ----------
+$('drop').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', e => {
+  enqueueFiles([...e.target.files]);
+  e.target.value = '';
+});
+const drop = $('drop');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add('over');
+}));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove('over');
+}));
+drop.addEventListener('drop', e => {
+  const files = [...(e.dataTransfer?.files || [])];
+  if (files.length) enqueueFiles(files);
+});
+
+// 初始状态
+setStatus('', '未连接');
+</script>
+</body>
+</html>
