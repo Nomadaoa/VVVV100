@@ -86,6 +86,35 @@
   .hidden { display: none !important; }
   .hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
   .link { color: var(--accent); text-decoration: underline; }
+
+  /* 二维码区 */
+  .qr-box {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px; background: #fff; border-radius: 12px; margin: 10px 0;
+  }
+  .qr-box canvas, .qr-box img { width: 220px; height: 220px; image-rendering: pixelated; }
+  .qr-tip { color: #64748b; font-size: 11px; margin-top: 6px; text-align: center; }
+  .switch-mode { text-align: center; margin-top: 8px; }
+  .switch-mode a { color: var(--accent); font-size: 12px; text-decoration: underline; cursor: pointer; }
+
+  /* 扫码模态 */
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 100;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .modal.show { display: flex; }
+  .modal video { max-width: 90vw; max-height: 70vh; border-radius: 12px; object-fit: cover; }
+  .modal .scan-frame {
+    position: absolute; width: 70vw; max-width: 280px; height: 70vw; max-height: 280px;
+    border: 2px solid var(--accent); border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.4); pointer-events: none;
+  }
+  .modal .close {
+    position: absolute; top: 16px; right: 16px; color: #fff; font-size: 28px;
+    background: rgba(0,0,0,.5); width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .modal .tip { color: #fff; margin-top: 16px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -107,37 +136,60 @@
 
     <!-- 创建 -->
     <div id="paneCreate">
-      <button id="btnCreate" onclick="createOffer()">🚀 生成连接码</button>
-      <label>把下面的连接码发给对方（加入房间 → 粘贴）</label>
-      <textarea id="offerOut" rows="3" readonly placeholder="点击上方按钮生成…"></textarea>
+      <button id="btnCreate" onclick="createOffer()">🚀 生成连接码二维码</button>
+      <div id="offerQr" class="qr-box hidden">
+        <canvas id="offerQrCanvas"></canvas>
+        <div class="qr-tip">📱 让对方在「加入房间」扫这个码</div>
+      </div>
+      <textarea id="offerOut" rows="2" readonly placeholder="" style="margin-top:8px"></textarea>
       <div class="row" style="margin-top:8px">
         <button class="ghost sm" onclick="copyEl('offerOut')">复制</button>
-        <button class="ghost sm" onclick="shareEl('offerOut')">系统分享</button>
+        <button class="ghost sm" onclick="shareEl('offerOut')">分享</button>
       </div>
-      <label>把对方返回的应答码粘贴到下面</label>
-      <textarea id="answerIn" rows="3" placeholder="粘贴对方生成的应答码…"></textarea>
+
+      <label>扫描对方返回的应答码（或粘贴）</label>
+      <textarea id="answerIn" rows="3" placeholder="扫描对方的应答码 或 手动粘贴…"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost sm" onclick="scanQR('answerIn')">📷 扫一扫</button>
+        <button class="ghost sm" onclick="pasteFromClipboard('answerIn')">📋 粘贴</button>
+      </div>
       <button class="ghost" style="margin-top:8px" onclick="acceptAnswer()">✅ 确认应答</button>
     </div>
 
     <!-- 加入 -->
     <div id="paneJoin" class="hidden">
-      <label>粘贴对方发来的连接码</label>
-      <textarea id="offerIn" rows="3" placeholder="粘贴对方的连接码…"></textarea>
-      <button onclick="createAnswer()">🔗 生成应答码</button>
-      <label>把下面应答码发回给对方（创建房间 → 粘贴）</label>
-      <textarea id="answerOut" rows="3" readonly placeholder="点击上方按钮生成…"></textarea>
+      <label>扫描对方的连接码（或粘贴）</label>
+      <textarea id="offerIn" rows="3" placeholder="扫描对方的连接码 或 手动粘贴…"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost sm" onclick="scanQR('offerIn')">📷 扫一扫</button>
+        <button class="ghost sm" onclick="pasteFromClipboard('offerIn')">📋 粘贴</button>
+      </div>
+      <button onclick="createAnswer()">🔗 生成应答码二维码</button>
+      <div id="answerQr" class="qr-box hidden">
+        <canvas id="answerQrCanvas"></canvas>
+        <div class="qr-tip">📱 让对方在「创建房间」扫这个码</div>
+      </div>
+      <textarea id="answerOut" rows="2" readonly placeholder="" style="margin-top:8px"></textarea>
       <div class="row" style="margin-top:8px">
         <button class="ghost sm" onclick="copyEl('answerOut')">复制</button>
-        <button class="ghost sm" onclick="shareEl('answerOut')">系统分享</button>
+        <button class="ghost sm" onclick="shareEl('answerOut')">分享</button>
       </div>
     </div>
 
     <div class="step">
-      <b>步骤：</b> A 机点"生成连接码" → 复制发给 B 机 → B 机粘贴后点"生成应答码" → 复制发回 A 机 → A 机粘贴并"确认应答" → 连接成功。
+      <b>步骤：</b> A 机「生成连接码二维码」→ B 机「加入房间」扫一扫 → B 机「生成应答码二维码」→ A 机「扫一扫应答码」→ ✅ 连接成功。
     </div>
     <div class="hint">
-      💡 两台手机用任意方式（微信/短信/口述）交换这两段短码即可。连接建立后走点对点直连，文件不经过任何服务器。建议在同一 WiFi 下使用，速度更快。
+      💡 手机对手机扫二维码即可，无需复制粘贴。连接建立后走点对点直连，文件不经过任何服务器。建议在同一 WiFi 下使用，速度更快。
     </div>
+  </div>
+
+  <!-- 扫码模态 -->
+  <div class="modal" id="scanModal">
+    <div class="close" onclick="stopScan()">×</div>
+    <video id="scanVideo" playsinline muted></video>
+    <div class="scan-frame"></div>
+    <div class="tip" id="scanTip">把二维码对准框内</div>
   </div>
 
   <!-- 传输区 -->
@@ -266,13 +318,16 @@ async function createOffer() {
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
   await waitIce(pc);
-  $('offerOut').value = encodeSDP(pc.localDescription);
-  setStatus('connecting', '等待对方应答…');
+  const code = encodeSDP(pc.localDescription);
+  $('offerOut').value = code;
+  drawQR('offerQrCanvas', code);
+  $('offerQr').classList.remove('hidden');
+  setStatus('connecting', '等待对方扫码应答…');
 }
 
 async function acceptAnswer() {
   const raw = $('answerIn').value.trim();
-  if (!raw) return toast('请粘贴应答码');
+  if (!raw) return toast('请扫描或粘贴应答码');
   try {
     const answer = decodeSDP(raw);
     await pc.setRemoteDescription(answer);
@@ -284,7 +339,7 @@ async function acceptAnswer() {
 async function createAnswer() {
   role = 'join';
   const raw = $('offerIn').value.trim();
-  if (!raw) return toast('请先粘贴连接码');
+  if (!raw) return toast('请先扫描或粘贴连接码');
   const pc = ensurePC();
   try {
     const offer = decodeSDP(raw);
@@ -292,8 +347,11 @@ async function createAnswer() {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     await waitIce(pc);
-    $('answerOut').value = encodeSDP(pc.localDescription);
-    setStatus('connecting', '已生成应答，等待对方确认…');
+    const code = encodeSDP(pc.localDescription);
+    $('answerOut').value = code;
+    drawQR('answerQrCanvas', code);
+    $('answerQr').classList.remove('hidden');
+    setStatus('connecting', '已生成应答，等待对方扫码确认…');
   } catch (e) { toast('连接码无效'); }
 }
 
@@ -456,6 +514,101 @@ drop.addEventListener('drop', e => {
 
 // 初始状态
 setStatus('', '未连接');
+
+// ---------- 二维码生成 ----------
+// 使用 qrcode-generator 库（CDN），异步加载重试
+function drawQR(canvasId, text) {
+  const c = $(canvasId);
+  if (!c || !text) return;
+  if (typeof qrcode === 'undefined') {
+    // 库还没加载完，500ms 后重试
+    setTimeout(() => drawQR(canvasId, text), 500);
+    return;
+  }
+  const qr = qrcode(0, 'M');    // 容错级别 M
+  qr.addData(text);
+  qr.make();
+  const size = qr.getModuleCount();
+  const ctx = c.getContext('2d');
+  const cell = 4;               // 每模块像素
+  c.width = c.height = size * cell;
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = '#000';
+  for (let r = 0; r < size; r++) {
+    for (let cc = 0; cc < size; cc++) {
+      if (qr.isDark(r, cc)) ctx.fillRect(cc * cell, r * cell, cell, cell);
+    }
+  }
+}
+
+// ---------- 扫描二维码 ----------
+let scanStream = null, scanRAF = null, scanTargetId = null;
+async function scanQR(targetId) {
+  if (typeof jsQR === 'undefined') {
+    toast('扫码库加载中，请稍后再试');
+    return;
+  }
+  scanTargetId = targetId;
+  const video = $('scanVideo');
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
+    });
+    video.srcObject = scanStream;
+    await video.play();
+    $('scanModal').classList.add('show');
+    $('scanTip').textContent = '把二维码对准框内';
+    scanTick();
+  } catch (e) {
+    toast('无法访问摄像头：' + (e.message || '权限被拒'));
+  }
+}
+
+function scanTick() {
+  const video = $('scanVideo');
+  if (!scanStream || video.readyState !== video.HAVE_ENOUGH_DATA) {
+    scanRAF = requestAnimationFrame(scanTick);
+    return;
+  }
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) { scanRAF = requestAnimationFrame(scanTick); return; }
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(video, 0, 0, w, h);
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const code = jsQR(imgData.data, w, h, { inversionAttempts: 'attemptOnly' });
+  if (code && code.data) {
+    $(scanTargetId).value = code.data.trim();
+    stopScan();
+    toast('✓ 已扫描');
+    return;
+  }
+  scanRAF = requestAnimationFrame(scanTick);
+}
+
+function stopScan() {
+  if (scanRAF) cancelAnimationFrame(scanRAF);
+  scanRAF = null;
+  if (scanStream) {
+    scanStream.getTracks().forEach(t => t.stop());
+    scanStream = null;
+  }
+  $('scanModal').classList.remove('show');
+}
+
+// ---------- 粘贴按钮 ----------
+async function pasteFromClipboard(id) {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text) { $(id).value = text.trim(); toast('已粘贴'); }
+    else toast('剪贴板为空');
+  } catch (e) {
+    toast('请手动粘贴（长按输入框）');
+  }
+}
 </script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 </body>
 </html>
