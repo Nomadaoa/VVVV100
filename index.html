@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>快传</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,system-ui,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:16px}
+h1{font-size:1.4rem;margin:12px 0 4px;color:#38bdf8}
+.sub{font-size:.8rem;color:#64748b;margin-bottom:16px}
+.card{background:#1e293b;border-radius:12px;padding:16px;width:100%;max-width:400px;margin-bottom:12px}
+.btn{display:block;width:100%;padding:12px;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;margin:6px 0}
+.btn:active{opacity:.7}
+.btn-primary{background:#0ea5e9;color:#fff}
+.btn-green{background:#10b981;color:#fff}
+.btn-amber{background:#f59e0b;color:#1e293b}
+.btn-ghost{background:#334155;color:#e2e8f0}
+.btn-red{background:#ef4444;color:#fff}
+.btn-sm{display:inline-block;width:auto;padding:8px 16px;font-size:.85rem;margin:0}
+textarea{width:100%;height:72px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:8px;font-size:.75rem;font-family:monospace;resize:none;margin:6px 0}
+.code-out{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px;font-size:.7rem;font-family:monospace;word-break:break-all;max-height:80px;overflow-y:auto;margin:6px 0;color:#a5f3fc}
+label{font-size:.8rem;color:#94a3b8;display:block;margin-top:8px}
+.status{font-size:.8rem;color:#fbbf24;margin:8px 0;min-height:1.2em}
+.status.ok{color:#34d399}
+.hidden{display:none}
+.qrbox{margin:10px auto;text-align:center}
+.qrbox canvas{border-radius:8px;background:#fff;padding:8px}
+.progress{height:6px;background:#334155;border-radius:3px;margin:8px 0;overflow:hidden}
+.progress-bar{height:100%;background:#0ea5e9;width:0;transition:width .2s}
+.files{margin-top:8px}
+.file-item{display:flex;align-items:center;justify-content:space-between;padding:8px;background:#0f172a;border-radius:6px;margin:4px 0;font-size:.8rem;gap:8px}
+.file-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-item a{color:#38bdf8;text-decoration:none;flex-shrink:0}
+.drop{border:2px dashed #334155;border-radius:8px;padding:14px;text-align:center;color:#64748b;font-size:.85rem;margin:8px 0}
+.drop.over{border-color:#0ea5e9;color:#0ea5e9}
+input[type=file]{display:none}
+.tabs{display:flex;gap:8px;margin-bottom:12px;width:100%;max-width:400px}
+.tab{flex:1;padding:10px;text-align:center;border-radius:8px;background:#1e293b;font-size:.9rem;font-weight:600;cursor:pointer;border:2px solid transparent}
+.tab.active{border-color:#0ea5e9;color:#0ea5e9}
+#scanVideo{width:100%;border-radius:8px;margin:8px 0}
+.conn-bar{width:100%;max-width:400px;display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 12px;background:#1e293b;border-radius:8px;font-size:.8rem}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-off{background:#64748b}
+.dot-wait{background:#fbbf24;animation:pulse 1s infinite}
+.dot-on{background:#34d399}
+.dot-err{background:#ef4444}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.conn-bar .txt{flex:1;color:#94a3b8}
+.reconnect-hint{font-size:.75rem;color:#64748b;margin:4px 0}
+/* 聊天 */
+.chat-box{width:100%;max-width:400px;display:flex;flex-direction:column;background:#1e293b;border-radius:12px;overflow:hidden;margin-bottom:12px}
+.chat-header{padding:10px 14px;font-size:.85rem;font-weight:600;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
+.chat-msgs{height:260px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:80%;padding:8px 12px;border-radius:12px;font-size:.85rem;line-height:1.4;word-break:break-word}
+.msg-me{align-self:flex-end;background:#0ea5e9;color:#fff;border-bottom-right-radius:4px}
+.msg-peer{align-self:flex-start;background:#334155;color:#e2e8f0;border-bottom-left-radius:4px}
+.msg-time{font-size:.65rem;color:#64748b;margin-top:2px}
+.msg-me .msg-time{text-align:right;color:rgba(255,255,255,.6)}
+.chat-input{display:flex;gap:8px;padding:10px;border-top:1px solid #334155}
+.chat-input input{flex:1;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 12px;color:#e2e8f0;font-size:.9rem;outline:none}
+.chat-input input:focus{border-color:#0ea5e9}
+.chat-input button{background:#0ea5e9;border:none;border-radius:8px;color:#fff;padding:10px 16px;font-size:.9rem;font-weight:600;cursor:pointer}
+.chat-input button:active{opacity:.7}
+/* 连接后子tab */
+.sub-tabs{display:flex;gap:8px;margin-bottom:12px;width:100%;max-width:400px}
+.sub-tab{flex:1;padding:8px;text-align:center;border-radius:8px;background:#1e293b;font-size:.85rem;font-weight:600;cursor:pointer;border:2px solid transparent}
+.sub-tab.active{border-color:#10b981;color:#10b981}
+</style>
+</head>
+<body>
+<h1>快传</h1>
+<p class="sub">同 WiFi · 无需服务器 · P2P 直连</p>
+
+<div class="conn-bar">
+  <div class="dot dot-off" id="connDot"></div>
+  <span class="txt" id="connTxt">未连接</span>
+</div>
+
+<div class="tabs" id="mainTabs">
+  <div class="tab active" id="tabSend" onclick="switchTab('send')">发送</div>
+  <div class="tab" id="tabRecv" onclick="switchTab('recv')">接收</div>
+</div>
+
+<div class="card" id="panelSend">
+  <div id="reconnectSend" class="hidden">
+    <p class="reconnect-hint">检测到上次的连接记录</p>
+    <button class="btn btn-green" onclick="quickReconnect('sender')">快速重连（免扫码）</button>
+    <button class="btn btn-ghost" onclick="hideReconnect()">重新配对</button>
+  </div>
+  <div id="normalSend">
+    <button class="btn btn-primary" onclick="createOffer()">1. 生成邀请码</button>
+    <div id="offerSection" class="hidden">
+      <label>邀请码（发给对方）：</label>
+      <div class="code-out" id="offerCode"></div>
+      <div class="qrbox" id="qrOffer"></div>
+      <button class="btn btn-amber" onclick="copyText('offerCode',this)">复制邀请码</button>
+      <label>2. 粘贴 / 扫描对方的应答码：</label>
+      <button class="btn btn-ghost" onclick="startScan('answerInput')">扫码填入应答码</button>
+      <textarea id="answerInput" placeholder="粘贴应答码..."></textarea>
+      <button class="btn btn-green" onclick="acceptAnswer()">连接</button>
+    </div>
+  </div>
+</div>
+
+<div class="card hidden" id="panelRecv">
+  <div id="reconnectRecv" class="hidden">
+    <p class="reconnect-hint">检测到上次的连接记录</p>
+    <button class="btn btn-green" onclick="quickReconnect('receiver')">快速重连（免扫码）</button>
+    <button class="btn btn-ghost" onclick="hideReconnect()">重新配对</button>
+  </div>
+  <div id="normalRecv">
+    <label>1. 粘贴 / 扫描对方的邀请码：</label>
+    <button class="btn btn-ghost" onclick="startScan('offerInput')">扫码填入邀请码</button>
+    <textarea id="offerInput" placeholder="粘贴邀请码..."></textarea>
+    <button class="btn btn-primary" onclick="createAnswer()">生成应答码</button>
+    <div id="answerSection" class="hidden">
+      <label>应答码（发回给对方）：</label>
+      <div class="code-out" id="answerCode"></div>
+      <div class="qrbox" id="qrAnswer"></div>
+      <button class="btn btn-amber" onclick="copyText('answerCode',this)">复制应答码</button>
+    </div>
+  </div>
+</div>
+
+<div class="card hidden" id="panelScan">
+  <video id="scanVideo" autoplay playsinline muted></video>
+  <p class="status" id="scanStatus">对准二维码…</p>
+  <button class="btn btn-ghost" onclick="stopScan()">取消</button>
+</div>
+
+<!-- 连接后：子tab切换 传文件/聊天 -->
+<div class="sub-tabs hidden" id="subTabs">
+  <div class="sub-tab active" id="subTabFile" onclick="switchSub('file')">传文件</div>
+  <div class="sub-tab" id="subTabChat" onclick="switchSub('chat')">聊天</div>
+</div>
+
+<div class="card hidden" id="panelTransfer">
+  <div class="drop" id="dropZone" onclick="fileInput.click()">点击选择文件 或 拖拽到此处</div>
+  <input type="file" id="fileInput" multiple>
+  <div class="progress hidden" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+  <p class="status" id="transferStatus"></p>
+  <div class="files" id="receivedFiles"></div>
+</div>
+
+<div class="chat-box hidden" id="panelChat">
+  <div class="chat-header"><span>聊天</span></div>
+  <div class="chat-msgs" id="chatMsgs"></div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="输入消息…" onkeydown="if(event.key==='Enter')sendChat()">
+    <button onclick="sendChat()">发送</button>
+  </div>
+</div>
+
+<div class="card hidden" id="panelDisconnect" style="padding:10px 16px">
+  <button class="btn btn-red" onclick="disconnect()">断开连接</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+var $ = function(id){ return document.getElementById(id); };
+var pc, dc, role;
+var CHUNK = 65536;
+var STORE_KEY = 'p2p_session';
+
+/* ====== 连接状态 ====== */
+function setConn(state, text) {
+  var dot = $('connDot'), txt = $('connTxt');
+  dot.className = 'dot ' + (state==='on'?'dot-on':state==='wait'?'dot-wait':state==='err'?'dot-err':'dot-off');
+  txt.textContent = text;
+}
+
+/* ====== 会话持久化 ====== */
+function saveSession(data) {
+  data.time = Date.now();
+  localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
+function loadSession() {
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return null;
+    var d = JSON.parse(raw);
+    if (Date.now() - d.time > 10 * 60 * 1000) { localStorage.removeItem(STORE_KEY); return null; }
+    return d;
+  } catch(e) { return null; }
+}
+function clearSession() { localStorage.removeItem(STORE_KEY); }
+
+/* ====== 二进制 SDP 压缩 ====== */
+var B64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+function c6(ch){ return B64.indexOf(ch); }
+function pack6(str){
+  var bits=[];
+  for(var i=0;i<str.length;i++){
+    var v=c6(str[i]); if(v<0) v=0;
+    bits.push((v>>5)&1,(v>>4)&1,(v>>3)&1,(v>>2)&1,(v>>1)&1,v&1);
+  }
+  var out=[];
+  for(var i=0;i<bits.length;i+=8){
+    var b=0; for(var j=0;j<8;j++) b=(b<<1)|(bits[i+j]||0);
+    out.push(b);
+  }
+  return out;
+}
+function unpack6(bytes, charCount){
+  var bits=[];
+  for(var i=0;i<bytes.length;i++) for(var j=7;j>=0;j--) bits.push((bytes[i]>>j)&1);
+  var s='';
+  for(var i=0;i<charCount;i++){
+    var v=0; for(var j=0;j<6;j++) v=(v<<1)|(bits[i*6+j]||0);
+    s+=B64[v];
+  }
+  return s;
+}
+
+function compressSDP(sdp, candidates) {
+  var u = sdp.match(/a=ice-ufrag:(\S+)/)[1];
+  var p = sdp.match(/a=ice-pwd:(\S+)/)[1];
+  var fHex = sdp.match(/a=fingerprint:sha-256\s+([\dA-Fa-f:]+)/i)[1].replace(/:/g, '');
+  var setup = sdp.match(/a=setup:(\w+)/)[1];
+  var port = parseInt((sdp.match(/a=sctp-port:(\d+)/) || [,'5000'])[1]);
+  var cs = [];
+  for (var i = 0; i < candidates.length; i++) {
+    var c = candidates[i].candidate;
+    if (c.indexOf('typ host') !== -1 && c.indexOf('udp') !== -1) {
+      var m = c.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)\s+(\d+)/);
+      if (m) cs.push([+m[1],+m[2],+m[3],+m[4],+m[5]]);
+    }
+  }
+  var setupBits = setup==='active'?0:(setup==='passive'?1:2);
+  var portNonStd = port!==5000 ? 1 : 0;
+  var flags = (setupBits<<1) | portNonStd;
+  var uPack = pack6(u), pPack = pack6(p);
+  var arr = [];
+  arr.push(flags);
+  arr.push(u.length); for(var i=0;i<uPack.length;i++) arr.push(uPack[i]);
+  arr.push(p.length); for(var i=0;i<pPack.length;i++) arr.push(pPack[i]);
+  for(var i=0;i<32;i++) arr.push(parseInt(fHex.substr(i*2,2),16));
+  if(portNonStd){ arr.push((port>>8)&0xFF); arr.push(port&0xFF); }
+  arr.push(cs.length);
+  for(var i=0;i<cs.length;i++){
+    arr.push(cs[i][0],cs[i][1],cs[i][2],cs[i][3]);
+    arr.push((cs[i][4]>>8)&0xFF, cs[i][4]&0xFF);
+  }
+  return b64url(new Uint8Array(arr));
+}
+
+function decompressSDP(code, type) {
+  var buf = unb64url(code);
+  var off = 0;
+  var flags = buf[off++];
+  var portNonStd = flags & 1;
+  var setupBits = (flags>>1)&3;
+  var setup = setupBits===0?'active':(setupBits===1?'passive':'actpass');
+  var uLen = buf[off++];
+  var uPackBytes = Math.ceil(uLen*6/8);
+  var u = unpack6(buf.slice(off, off+uPackBytes), uLen); off += uPackBytes;
+  var pLen = buf[off++];
+  var pPackBytes = Math.ceil(pLen*6/8);
+  var p = unpack6(buf.slice(off, off+pPackBytes), pLen); off += pPackBytes;
+  var fp = '';
+  for(var i=0;i<32;i++){ var h=buf[off++].toString(16); fp+=(h.length<2?'0':'')+h; }
+  var port = 5000;
+  if(portNonStd){ port=(buf[off++]<<8)|buf[off++]; }
+  var numC = buf[off++];
+  var candLines='', candidates=[];
+  for(var i=0;i<numC;i++){
+    var ip=buf[off++]+'.'+buf[off++]+'.'+buf[off++]+'.'+buf[off++];
+    var cp=(buf[off++]<<8)|buf[off++];
+    candLines+='a=candidate:'+i+' 1 udp '+(2130706431-i)+' '+ip+' '+cp+' typ host generation 0\r\n';
+    candidates.push(new RTCIceCandidate({candidate:'candidate:'+i+' 1 udp '+(2130706431-i)+' '+ip+' '+cp+' typ host generation 0',sdpMid:'0',sdpMLineIndex:0}));
+  }
+  var fpStr=fp.toUpperCase().match(/../g).join(':');
+  var sdp='v=0\r\no=- 0 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:'+u+'\r\na=ice-pwd:'+p+'\r\na=fingerprint:sha-256 '+fpStr+'\r\na=setup:'+setup+'\r\na=mid:0\r\na=sctp-port:'+port+'\r\n'+candLines;
+  return {sdp:{type:type,sdp:sdp},candidates:candidates};
+}
+
+function b64url(buf){
+  var s=''; for(var i=0;i<buf.length;i++) s+=String.fromCharCode(buf[i]);
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function unb64url(str){
+  str=str.replace(/-/g,'+').replace(/_/g,'/');
+  while(str.length%4) str+='=';
+  var bin=atob(str);
+  var buf=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+  return buf;
+}
+
+/* ====== WebRTC ====== */
+function newPC() {
+  pc = new RTCPeerConnection({iceServers:[]});
+  pc.oniceconnectionstatechange = function() {
+    var s = pc.iceConnectionState;
+    if (s==='checking') setConn('wait','连接中…');
+    if (s==='connected'||s==='completed') { setConn('on','已连接'); showConnected(); }
+    if (s==='disconnected') setConn('wait','连接中断…');
+    if (s==='failed') setConn('err','连接失败');
+    if (s==='closed') setConn('off','已断开');
+  };
+}
+function gatherCandidates() {
+  return new Promise(function(resolve) {
+    var cands=[];
+    pc.onicecandidate = function(e) { if(e.candidate) cands.push(e.candidate); else resolve(cands); };
+  });
+}
+
+function createOffer() {
+  role='sender'; newPC();
+  setConn('wait','生成邀请码…');
+  dc = pc.createDataChannel('data',{ordered:true}); setupDC(dc);
+  pc.createOffer().then(function(offer) {
+    return pc.setLocalDescription(offer).then(function(){ return offer; });
+  }).then(function(offer) {
+    return gatherCandidates().then(function(cands) {
+      var code = compressSDP(offer.sdp, cands);
+      $('offerCode').textContent = code;
+      $('offerSection').classList.remove('hidden');
+      genQR(code,'qrOffer');
+      setConn('wait','等待对方应答…');
+    });
+  });
+}
+
+function createAnswer() {
+  var code = $('offerInput').value.trim();
+  if(!code) return alert('请先粘贴邀请码');
+  role='receiver'; newPC();
+  setConn('wait','生成应答码…');
+  pc.ondatachannel = function(e) { dc=e.channel; setupDC(dc); };
+  var d;
+  try { d = decompressSDP(code,'offer'); }
+  catch(e){ setConn('err','邀请码无效'); return alert('邀请码无效：'+e.message); }
+  pc.setRemoteDescription(d.sdp).then(function(){
+    var p = Promise.resolve();
+    d.candidates.forEach(function(c){ p = p.then(function(){ return pc.addIceCandidate(c).catch(function(){}); }); });
+    return p;
+  }).then(function(){
+    return pc.createAnswer();
+  }).then(function(answer){
+    return pc.setLocalDescription(answer).then(function(){ return answer; });
+  }).then(function(answer){
+    return gatherCandidates().then(function(cands){
+      var aCode = compressSDP(answer.sdp, cands);
+      $('answerCode').textContent = aCode;
+      $('answerSection').classList.remove('hidden');
+      genQR(aCode,'qrAnswer');
+      setConn('wait','等待对方确认…');
+      saveSession({role:'receiver', peerCode:code});
+    });
+  }).catch(function(e){ setConn('err','错误'); alert('错误：'+e.message); });
+}
+
+function acceptAnswer() {
+  var code = $('answerInput').value.trim();
+  if(!code) return alert('请先粘贴应答码');
+  var d;
+  try { d = decompressSDP(code,'answer'); }
+  catch(e){ setConn('err','应答码无效'); return alert('应答码无效：'+e.message); }
+  setConn('wait','连接中…');
+  pc.setRemoteDescription(d.sdp).then(function(){
+    var p = Promise.resolve();
+    d.candidates.forEach(function(c){ p = p.then(function(){ return pc.addIceCandidate(c).catch(function(){}); }); });
+    return p;
+  }).then(function(){
+    saveSession({role:'sender', peerCode:code});
+  }).catch(function(e){ setConn('err','错误'); alert('错误：'+e.message); });
+}
+
+/* ====== 快速重连 ====== */
+function quickReconnect(myRole) {
+  var sess = loadSession();
+  if (!sess || !sess.peerCode) { alert('无历史记录'); return; }
+  role = myRole;
+  newPC();
+  setConn('wait','快速重连中…');
+
+  if (role === 'sender') {
+    dc = pc.createDataChannel('data',{ordered:true}); setupDC(dc);
+    pc.createOffer().then(function(offer){
+      return pc.setLocalDescription(offer).then(function(){ return offer; });
+    }).then(function(offer){
+      return gatherCandidates().then(function(cands){
+        var code = compressSDP(offer.sdp, cands);
+        $('offerCode').textContent = code;
+        $('offerSection').classList.remove('hidden');
+        genQR(code,'qrOffer');
+        $('answerInput').value = sess.peerCode;
+        setConn('wait','尝试直连…');
+        var d = decompressSDP(sess.peerCode,'answer');
+        return pc.setRemoteDescription(d.sdp).then(function(){
+          var p = Promise.resolve();
+          d.candidates.forEach(function(c){ p = p.then(function(){ return pc.addIceCandidate(c).catch(function(){}); }); });
+          return p;
+        });
+      });
+    }).catch(function(){
+      setConn('wait','旧码失效，请让对方扫码或点快速重连');
+    });
+  } else {
+    pc.ondatachannel = function(e) { dc=e.channel; setupDC(dc); };
+    var d;
+    try { d = decompressSDP(sess.peerCode,'offer'); }
+    catch(e){ setConn('err','记录无效'); clearSession(); return; }
+    pc.setRemoteDescription(d.sdp).then(function(){
+      var p = Promise.resolve();
+      d.candidates.forEach(function(c){ p = p.then(function(){ return pc.addIceCandidate(c).catch(function(){}); }); });
+      return p;
+    }).then(function(){
+      return pc.createAnswer();
+    }).then(function(answer){
+      return pc.setLocalDescription(answer).then(function(){ return answer; });
+    }).then(function(answer){
+      return gatherCandidates().then(function(cands){
+        var aCode = compressSDP(answer.sdp, cands);
+        $('answerCode').textContent = aCode;
+        $('answerSection').classList.remove('hidden');
+        genQR(aCode,'qrAnswer');
+        setConn('wait','等待对方确认…');
+      });
+    }).catch(function(){
+      setConn('wait','旧码失效，请让对方重新生成邀请码');
+    });
+  }
+  setTimeout(function(){
+    if (!dc || dc.readyState !== 'open') {
+      if (pc && pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') {
+        setConn('off','重连超时 — 对方也需打开页面点快速重连');
+      }
+    }
+  }, 6000);
+}
+
+function hideReconnect() {
+  clearSession();
+  $('reconnectSend').classList.add('hidden');
+  $('reconnectRecv').classList.add('hidden');
+  $('normalSend').classList.remove('hidden');
+  $('normalRecv').classList.remove('hidden');
+}
+
+function disconnect() {
+  clearSession();
+  if(pc){ pc.close(); pc=null; }
+  dc = null;
+  setConn('off','已断开');
+  $('panelTransfer').classList.add('hidden');
+  $('panelChat').classList.add('hidden');
+  $('panelDisconnect').classList.add('hidden');
+  $('subTabs').classList.add('hidden');
+  $('panelSend').classList.remove('hidden');
+  $('panelRecv').classList.remove('hidden');
+  $('mainTabs').classList.remove('hidden');
+  $('offerSection').classList.add('hidden');
+  $('answerSection').classList.add('hidden');
+}
+
+/* ====== DataChannel（协议：JSON 文本消息区分类型） ====== */
+var currentFile = null;
+function setupDC(channel) {
+  channel.binaryType='arraybuffer';
+  channel.onopen = function() {
+    setConn('on','已连接');
+    showConnected();
+  };
+  channel.onclose = function() { setConn('off','连接已关闭'); };
+  channel.onmessage = function(e) {
+    if(typeof e.data==='string'){
+      var msg = JSON.parse(e.data);
+      if (msg.t === 'msg') {
+        appendChat(msg.text, false);
+      } else if (msg.t === 'file') {
+        currentFile = {name:msg.name, size:msg.size, type:msg.type, received:0, chunks:[]};
+        $('progressWrap').classList.remove('hidden');
+        $('transferStatus').textContent='接收中: '+currentFile.name;
+      }
+    } else {
+      if (!currentFile) return;
+      currentFile.chunks.push(e.data);
+      currentFile.received+=e.data.byteLength;
+      $('progressBar').style.width=Math.round(currentFile.received/currentFile.size*100)+'%';
+      if(currentFile.received>=currentFile.size){
+        var blob=new Blob(currentFile.chunks,{type:currentFile.type||'application/octet-stream'});
+        var url=URL.createObjectURL(blob);
+        var div=document.createElement('div');
+        div.className='file-item';
+        div.innerHTML='<span>'+currentFile.name.replace(/</g,'&lt;')+'</span><a href="'+url+'" download="'+currentFile.name.replace(/"/g,'')+'">保存</a>';
+        $('receivedFiles').prepend(div);
+        $('transferStatus').textContent='接收完成 ✓';
+        $('progressBar').style.width='0';
+        $('progressWrap').classList.add('hidden');
+        currentFile=null;
+      }
+    }
+  };
+}
+
+function sendFile(file) {
+  if(!dc||dc.readyState!=='open') return;
+  dc.send(JSON.stringify({t:'file',name:file.name,size:file.size,type:file.type}));
+  $('progressWrap').classList.remove('hidden');
+  $('transferStatus').textContent='发送中: '+file.name;
+  var offset=0;
+  var reader=new FileReader();
+  reader.onload=function(){
+    dc.send(reader.result);
+    offset+=CHUNK;
+    $('progressBar').style.width=Math.min(Math.round(offset/file.size*100),100)+'%';
+    if(offset<file.size) readNext();
+    else { $('transferStatus').textContent='发送完成 ✓'; setTimeout(function(){$('progressWrap').classList.add('hidden');$('progressBar').style.width='0';},1000); }
+  };
+  function readNext(){ reader.readAsArrayBuffer(file.slice(offset,offset+CHUNK)); }
+  readNext();
+}
+
+/* ====== 聊天 ====== */
+function sendChat() {
+  var input = $('chatInput');
+  var text = input.value.trim();
+  if (!text || !dc || dc.readyState !== 'open') return;
+  dc.send(JSON.stringify({t:'msg', text:text}));
+  appendChat(text, true);
+  input.value = '';
+}
+
+function appendChat(text, isMe) {
+  var box = $('chatMsgs');
+  var div = document.createElement('div');
+  div.className = 'msg ' + (isMe ? 'msg-me' : 'msg-peer');
+  var now = new Date();
+  var time = ('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+  div.innerHTML = '<div>'+escHtml(text)+'</div><div class="msg-time">'+time+'</div>';
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ====== UI ====== */
+function showConnected(){
+  $('panelSend').classList.add('hidden');
+  $('panelRecv').classList.add('hidden');
+  $('mainTabs').classList.add('hidden');
+  $('subTabs').classList.remove('hidden');
+  $('panelTransfer').classList.remove('hidden');
+  $('panelDisconnect').classList.remove('hidden');
+  switchSub('file');
+}
+
+function switchSub(t) {
+  $('subTabFile').classList.toggle('active', t==='file');
+  $('subTabChat').classList.toggle('active', t==='chat');
+  $('panelTransfer').classList.toggle('hidden', t!=='file');
+  $('panelChat').classList.toggle('hidden', t!=='chat');
+  if (t==='chat') $('chatInput').focus();
+}
+
+function switchTab(t){
+  $('tabSend').classList.toggle('active',t==='send');
+  $('tabRecv').classList.toggle('active',t==='recv');
+  $('panelSend').classList.toggle('hidden',t!=='send');
+  $('panelRecv').classList.toggle('hidden',t!=='recv');
+}
+function copyText(id,btn){
+  var text = $(id).textContent;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      var old=btn.textContent; btn.textContent='已复制 ✓';
+      setTimeout(function(){btn.textContent=old;},1500);
+    });
+  } else {
+    var ta=document.createElement('textarea');
+    ta.value=text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    var old=btn.textContent; btn.textContent='已复制 ✓';
+    setTimeout(function(){btn.textContent=old;},1500);
+  }
+}
+
+function genQR(text, elId) {
+  var box = $(elId); box.innerHTML = '';
+  var qr = qrcode(0, 'L');
+  qr.addData(text);
+  qr.make();
+  var count = qr.getModuleCount();
+  var cellSize = Math.max(3, Math.floor(220 / count));
+  var size = count * cellSize;
+  var canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = '#000000';
+  for (var r = 0; r < count; r++)
+    for (var c = 0; c < count; c++)
+      if (qr.isDark(r, c)) ctx.fillRect(c*cellSize, r*cellSize, cellSize, cellSize);
+  box.appendChild(canvas);
+}
+
+$('fileInput').onchange=function(e){ for(var i=0;i<e.target.files.length;i++) sendFile(e.target.files[i]); };
+var dz=$('dropZone');
+dz.ondragover=function(e){e.preventDefault();dz.classList.add('over');};
+dz.ondragleave=function(){dz.classList.remove('over');};
+dz.ondrop=function(e){e.preventDefault();dz.classList.remove('over');for(var i=0;i<e.dataTransfer.files.length;i++)sendFile(e.dataTransfer.files[i]);};
+
+/* ====== 扫码 ====== */
+var scanStream=null,scanRAF=null,scanTarget=null;
+function startScan(targetId){
+  scanTarget=targetId;
+  $('panelScan').classList.remove('hidden');
+  $('scanStatus').textContent='启动摄像头…';
+  navigator.mediaDevices.getUserMedia({
+    video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080} }
+  }).then(function(stream){
+    scanStream=stream;
+    var video=$('scanVideo');
+    video.srcObject=stream;
+    return video.play();
+  }).then(function(){
+    $('scanStatus').textContent='对准二维码…';
+    tick();
+  }).catch(function(){
+    $('scanStatus').textContent='摄像头不可用，请手动粘贴';
+  });
+}
+function tick(){
+  var video=$('scanVideo');
+  if(!scanStream) return;
+  if(video.readyState===video.HAVE_ENOUGH_DATA){
+    var w=video.videoWidth, h=video.videoHeight;
+    var c=document.createElement('canvas');
+    c.width=w; c.height=h;
+    var ctx=c.getContext('2d');
+    ctx.drawImage(video,0,0,w,h);
+    var img=ctx.getImageData(0,0,w,h);
+    var res=jsQR(img.data,w,h,{inversionAttempts:'attemptBoth'});
+    if(res&&res.data){ $(scanTarget).value=res.data.trim(); stopScan(); return; }
+  }
+  scanRAF=requestAnimationFrame(tick);
+}
+function stopScan(){
+  if(scanRAF) cancelAnimationFrame(scanRAF);
+  if(scanStream) scanStream.getTracks().forEach(function(t){t.stop();});
+  scanStream=null; scanRAF=null;
+  $('panelScan').classList.add('hidden');
+}
+
+/* ====== 启动：检测历史会话 ====== */
+(function(){
+  var sess = loadSession();
+  if (sess && sess.peerCode) {
+    if (sess.role === 'sender') {
+      $('reconnectSend').classList.remove('hidden');
+    } else {
+      switchTab('recv');
+      $('reconnectRecv').classList.remove('hidden');
+    }
+  }
+})();
+</script>
+</body>
+</html>
